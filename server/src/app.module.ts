@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { CallsModule } from './calls/calls.module';
 import { ChatModule } from './chat/chat.module';
 import { GiftsModule } from './gifts/gifts.module';
+import { GiftCardsModule } from './gift-cards/gift-cards.module';
 import { HealthModule } from './health/health.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PackagesModule } from './packages/packages.module';
@@ -22,5 +23,5 @@ const validateConfig = (config: Record<string, unknown>) => {
   if (config.NODE_ENV === 'production' && String(config.JWT_ACCESS_SECRET).includes('replace-with')) throw new Error('Production JWT secrets must be changed');
   return config;
 };
-@Module({ imports: [ConfigModule.forRoot({ isGlobal: true, validate: validateConfig }), PrismaModule, HealthModule, AuthModule, UsersModule, SocialModule, WalletModule, PaymentsModule, VendorsModule, PackagesModule, GiftsModule, WithdrawalsModule, ReportsModule, NotificationsModule, AdminModule, CallsModule, ChatModule] })
+@Module({ imports: [ConfigModule.forRoot({ isGlobal: true, validate: validateConfig }), PrismaModule, HealthModule, AuthModule, UsersModule, SocialModule, WalletModule, PaymentsModule, VendorsModule, PackagesModule, GiftsModule, GiftCardsModule, WithdrawalsModule, ReportsModule, NotificationsModule, AdminModule, CallsModule, ChatModule] })
 export class AppModule {}

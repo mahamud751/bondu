@@ -46,6 +46,9 @@ CREATE TYPE "MessageType" AS ENUM ('TEXT', 'IMAGE', 'VOICE', 'VIDEO', 'GIFT', 'S
 -- CreateEnum
 CREATE TYPE "MessageStatus" AS ENUM ('SENT', 'DELIVERED', 'READ', 'DELETED', 'BLOCKED');
 
+-- CreateEnum
+CREATE TYPE "ConnectionStatus" AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -212,6 +215,8 @@ CREATE TABLE "CallSession" (
     "ratePerMinute" INTEGER NOT NULL,
     "reservedAmount" INTEGER NOT NULL,
     "prepaidSeconds" INTEGER NOT NULL DEFAULT 0,
+    "paymentSourceType" TEXT NOT NULL DEFAULT 'WALLET',
+    "paymentSourceId" TEXT,
     "connectedAt" TIMESTAMP(3),
     "endedAt" TIMESTAMP(3),
     "durationSeconds" INTEGER NOT NULL DEFAULT 0,
@@ -353,6 +358,29 @@ CREATE TABLE "Block" (
 );
 
 -- CreateTable
+CREATE TABLE "Follow" (
+    "id" TEXT NOT NULL,
+    "followerId" TEXT NOT NULL,
+    "followingId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Follow_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Connection" (
+    "id" TEXT NOT NULL,
+    "requesterId" TEXT NOT NULL,
+    "recipientId" TEXT NOT NULL,
+    "status" "ConnectionStatus" NOT NULL DEFAULT 'PENDING',
+    "respondedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Connection_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Conversation" (
     "id" TEXT NOT NULL,
     "userOneId" TEXT NOT NULL,
@@ -486,6 +514,18 @@ CREATE INDEX "AuditLog_entityType_entityId_createdAt_idx" ON "AuditLog"("entityT
 CREATE UNIQUE INDEX "Block_blockerId_blockedUserId_key" ON "Block"("blockerId", "blockedUserId");
 
 -- CreateIndex
+CREATE INDEX "Follow_followingId_createdAt_idx" ON "Follow"("followingId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Follow_followerId_followingId_key" ON "Follow"("followerId", "followingId");
+
+-- CreateIndex
+CREATE INDEX "Connection_recipientId_status_createdAt_idx" ON "Connection"("recipientId", "status", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Connection_requesterId_recipientId_key" ON "Connection"("requesterId", "recipientId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Conversation_userOneId_userTwoId_key" ON "Conversation"("userOneId", "userTwoId");
 
 -- CreateIndex
@@ -544,6 +584,18 @@ ALTER TABLE "Block" ADD CONSTRAINT "Block_blockerId_fkey" FOREIGN KEY ("blockerI
 
 -- AddForeignKey
 ALTER TABLE "Block" ADD CONSTRAINT "Block_blockedUserId_fkey" FOREIGN KEY ("blockedUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Follow" ADD CONSTRAINT "Follow_followerId_fkey" FOREIGN KEY ("followerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Follow" ADD CONSTRAINT "Follow_followingId_fkey" FOREIGN KEY ("followingId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Connection" ADD CONSTRAINT "Connection_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Connection" ADD CONSTRAINT "Connection_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_userOneId_fkey" FOREIGN KEY ("userOneId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

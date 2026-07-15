@@ -1,1 +1,1 @@
-import{Module}from'@nestjs/common';import{PackagesController}from'./packages.controller';@Module({controllers:[PackagesController]})export class PackagesModule{}
+import{Module}from'@nestjs/common';import{WalletModule}from'../wallet/wallet.module';import{PackagesController}from'./packages.controller';@Module({imports:[WalletModule],controllers:[PackagesController]})export class PackagesModule{}

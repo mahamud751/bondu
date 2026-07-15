@@ -330,6 +330,8 @@ model CallSession {
   ratePerMinute   Int
   reservedAmount  Int
   prepaidSeconds  Int           @default(0)
+  paymentSourceType String      @default("WALLET")
+  paymentSourceId String?
   connectedAt     DateTime?
   endedAt         DateTime?
   durationSeconds Int           @default(0)
