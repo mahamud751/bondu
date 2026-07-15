@@ -158,6 +158,22 @@ CREATE TABLE "WalletLedger" (
 );
 
 -- CreateTable
+CREATE TABLE "PlatformLedger" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'BDT',
+    "referenceType" TEXT NOT NULL,
+    "referenceId" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "idempotencyKey" TEXT NOT NULL,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PlatformLedger_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Payment" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -488,6 +504,15 @@ CREATE UNIQUE INDEX "WalletLedger_idempotencyKey_key" ON "WalletLedger"("idempot
 
 -- CreateIndex
 CREATE INDEX "WalletLedger_userId_createdAt_idx" ON "WalletLedger"("userId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PlatformLedger_idempotencyKey_key" ON "PlatformLedger"("idempotencyKey");
+
+-- CreateIndex
+CREATE INDEX "PlatformLedger_type_createdAt_idx" ON "PlatformLedger"("type", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PlatformLedger_referenceType_referenceId_idx" ON "PlatformLedger"("referenceType", "referenceId");
 
 -- CreateIndex
 CREATE INDEX "Payment_status_createdAt_idx" ON "Payment"("status", "createdAt");

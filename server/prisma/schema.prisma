@@ -275,6 +275,22 @@ model WalletLedger {
   @@index([userId, createdAt])
 }
 
+model PlatformLedger {
+  id             String   @id @default(uuid())
+  type           String
+  amount         Int
+  currency       String   @default("BDT")
+  referenceType  String
+  referenceId    String
+  description    String
+  idempotencyKey String   @unique
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([referenceType, referenceId])
+}
+
 model Payment {
   id              String         @id @default(uuid())
   userId          String

@@ -1,12 +1,12 @@
 const { ConflictException } = require('@nestjs/common');
 const { WalletService } = require('../dist/src/wallet/wallet.service');
 
-const wallet = (overrides = {}) => ({ id: 'wallet-1', userId: 'user-1', purchased: 100, reserved: 0, pendingEarning: 0, ...overrides });
+const wallet = (overrides = {}) => ({ id: 'wallet-1', userId: 'user-1', purchased: 100, promotional: 0, reserved: 0, pendingEarning: 0, ...overrides });
 function transaction(initial = wallet()) {
   const tx = {
     wallet: {
       findUniqueOrThrow: jest.fn().mockResolvedValue(initial),
-      update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...initial, purchased: initial.purchased + (data.purchased?.increment ?? 0) - (data.purchased?.decrement ?? 0), reserved: initial.reserved + (data.reserved?.increment ?? 0) - (data.reserved?.decrement ?? 0) })),
+      update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...initial, purchased: initial.purchased + (data.purchased?.increment ?? 0) - (data.purchased?.decrement ?? 0), promotional: initial.promotional + (data.promotional?.increment ?? 0) - (data.promotional?.decrement ?? 0), reserved: initial.reserved + (data.reserved?.increment ?? 0) - (data.reserved?.decrement ?? 0) })),
     },
     walletLedger: { create: jest.fn().mockImplementation(({ data }) => Promise.resolve(data)) },
   };
@@ -28,5 +28,10 @@ describe('WalletService', () => {
   });
   test('rejects charges larger than their reservation', async () => {
     await expect(service.settleReservation(transaction(), 'user-1', 10, 11, 'call-1')).rejects.toBeInstanceOf(ConflictException);
+  });
+  test('uses promotional points only after purchased points', async () => {
+    const tx = transaction(wallet({ purchased: 5, promotional: 20 }));
+    await service.debitPurchased(tx, { userId: 'user-1', type: 'GIFT_PURCHASE', direction: 'DEBIT', amount: 12, referenceType: 'GIFT', referenceId: 'gift-1', description: 'Gift', idempotencyKey: 'gift-1' });
+    expect(tx.wallet.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ purchased: { decrement: 5 }, promotional: { decrement: 7 } }) }));
   });
 });

@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
-import { Prisma, ReportStatus, Role, UserStatus, VendorStatus, WithdrawalStatus } from '@prisma/client';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { PackageType, Prisma, ReportStatus, Role, UserStatus, VendorStatus, WithdrawalStatus } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtGuard } from '../common/guards/jwt.guard';
@@ -13,6 +13,10 @@ class UserStatusDto { @IsEnum(UserStatus) status!: UserStatus; }
 class VendorStatusDto { @IsEnum(VendorStatus) status!: VendorStatus; @IsOptional() @IsString() reason?: string; }
 class ReportStatusDto { @IsEnum(ReportStatus) status!: ReportStatus; }
 class WithdrawalStatusDto { @IsEnum(WithdrawalStatus) status!: WithdrawalStatus; @IsOptional() @IsString() reason?: string; }
+class CatalogPackageDto { @IsOptional() @IsString() name?:string; @IsOptional() @IsEnum(PackageType) type?:PackageType; @IsOptional() @IsInt() @Min(0) price?:number; @IsOptional() @IsInt() @Min(0) points?:number; @IsOptional() @IsInt() @Min(0) voiceSeconds?:number; @IsOptional() @IsInt() @Min(0) messageCount?:number; @IsOptional() @IsInt() @Min(1) validityDays?:number; @IsOptional() @IsBoolean() active?:boolean; }
+class GiftCardAdminDto extends CatalogPackageDto { @IsOptional() @IsBoolean() transferable?:boolean; @IsOptional() @IsBoolean() vendorSpecific?:boolean; }
+class DigitalGiftAdminDto { @IsOptional() @IsString() name?:string; @IsOptional() @IsString() iconUrl?:string; @IsOptional() @IsInt() @Min(1) pointPrice?:number; @IsOptional() @IsInt() @Min(0) @Max(100) vendorPercent?:number; @IsOptional() @IsBoolean() active?:boolean; }
+class VendorPricingDto { @IsOptional() @IsInt() @Min(0) voiceRatePerMinute?:number; @IsOptional() @IsInt() @Min(0) paidChatRate?:number; @IsOptional() @IsInt() @Min(0) @Max(100) commissionPercent?:number; }
 @ApiTags('Admin') @ApiBearerAuth() @UseGuards(JwtGuard, RolesGuard) @Roles(Role.ADMIN) @Controller('admin')
 export class AdminController {
   constructor(private readonly db: PrismaService) {}
@@ -22,7 +26,7 @@ export class AdminController {
       this.db.payment.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] } } }),
       this.db.withdrawal.count({ where: { status: { in: ['PENDING', 'UNDER_REVIEW'] } } }),
       this.db.report.count({ where: { status: 'OPEN' } }),
-      this.db.walletLedger.aggregate({ where: { type: 'PLATFORM_COMMISSION' }, _sum: { amount: true } }),
+      this.db.platformLedger.aggregate({ where: { type: 'COMMISSION' }, _sum: { amount: true } }),
     ]);
     return { users, approvedVendors: vendors, pendingPayments, pendingWithdrawals, openReports, platformRevenue: revenue._sum.amount ?? 0 };
   }
@@ -72,4 +76,14 @@ export class AdminController {
     });
   }
   @Get('audit-logs') auditLogs() { return this.db.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }); }
+  @Get('packages') packages(){return this.db.package.findMany({orderBy:{createdAt:'desc'}})}
+  @Post('packages') packageCreate(@Body()d:CatalogPackageDto){return this.db.package.create({data:d as Prisma.PackageUncheckedCreateInput})}
+  @Patch('packages/:id') packageUpdate(@Param('id')id:string,@Body()d:CatalogPackageDto){return this.db.package.update({where:{id},data:d})}
+  @Patch('gift-cards/:id') giftCardUpdate(@Param('id')id:string,@Body()d:GiftCardAdminDto){return this.db.giftCard.update({where:{id},data:d})}
+  @Get('gift-cards') giftCards(){return this.db.giftCard.findMany({orderBy:{createdAt:'desc'}})}
+  @Post('gift-cards') giftCardCreate(@Body()d:GiftCardAdminDto){return this.db.giftCard.create({data:d as Prisma.GiftCardUncheckedCreateInput})}
+  @Get('digital-gifts') digitalGifts(){return this.db.digitalGift.findMany()}
+  @Post('digital-gifts') digitalGiftCreate(@Body()d:DigitalGiftAdminDto){return this.db.digitalGift.create({data:d as Prisma.DigitalGiftUncheckedCreateInput})}
+  @Patch('digital-gifts/:id') digitalGiftUpdate(@Param('id')id:string,@Body()d:DigitalGiftAdminDto){return this.db.digitalGift.update({where:{id},data:d})}
+  @Patch('vendors/:id/pricing') vendorPricing(@Param('id')id:string,@Body()d:VendorPricingDto){return this.db.vendorProfile.update({where:{id},data:d})}
 }

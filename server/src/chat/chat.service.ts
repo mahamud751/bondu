@@ -37,15 +37,18 @@ export class ChatService {
       if (blocked) throw new ForbiddenException('Messaging is blocked');
       const receiverVendor = await tx.vendorProfile.findUnique({ where: { userId: receiverId } });
       const cost = receiverVendor?.status === 'APPROVED' ? receiverVendor.paidChatRate : 0;
-      const chatPackage = cost > 0 ? await tx.userPackage.findFirst({ where: { userId: senderId, active: true, expiresAt: { gt: new Date() }, remainingMessages: { gt: 0 } }, orderBy: { expiresAt: 'asc' } }) : null;
+      const chatGift = cost > 0 ? await tx.userGiftCard.findFirst({ where: { recipientId: senderId, activatedAt: { not: null }, status: { in: ['ACTIVE', 'PARTIALLY_USED'] }, expiresAt: { gt: new Date() }, remainingMessages: { gt: 0 }, OR: [{ vendorId: null }, { vendorId: receiverVendor?.id }] }, orderBy: { expiresAt: 'asc' } }) : null;
+      const chatPackage = cost > 0 && !chatGift ? await tx.userPackage.findFirst({ where: { userId: senderId, active: true, expiresAt: { gt: new Date() }, remainingMessages: { gt: 0 } }, orderBy: { expiresAt: 'asc' } }) : null;
       const vendorAmount = receiverVendor ? Math.floor(cost * receiverVendor.commissionPercent / 100) : 0;
-      if (chatPackage) await tx.userPackage.update({ where: { id: chatPackage.id }, data: { remainingMessages: { decrement: 1 } } });
+      if (chatGift) { const remaining = chatGift.remainingMessages - 1; await tx.userGiftCard.update({ where: { id: chatGift.id }, data: { remainingMessages: remaining, status: remaining === 0 && chatGift.remainingVoiceSeconds === 0 ? 'FULLY_USED' : 'PARTIALLY_USED' } }); }
+      else if (chatPackage) await tx.userPackage.update({ where: { id: chatPackage.id }, data: { remainingMessages: { decrement: 1 } } });
       else if (cost > 0) await this.wallets.debitPurchased(tx, { userId: senderId, type: 'CHAT_CHARGE', direction: 'DEBIT', amount: cost, referenceType: 'MESSAGE', referenceId: scopedKey, description: 'Paid chat message', idempotencyKey: `message:${scopedKey}:charge` });
       const message = await tx.message.create({ data: { conversationId: id, senderId, receiverId, content: content.trim(), idempotencyKey: scopedKey, pointCost: cost, vendorAmount, platformAmount: cost - vendorAmount } });
       if (vendorAmount > 0) {
         await this.wallets.creditPendingEarning(tx, receiverId, vendorAmount, message.id, 'CHAT');
         await tx.earning.create({ data: { vendorId: receiverVendor!.id, sourceType: 'CHAT', sourceId: message.id, grossAmount: cost, vendorAmount, platformAmount: cost - vendorAmount, availableAt: new Date(Date.now() + 7 * 86400000) } });
       }
+      await this.wallets.platformCommission(tx, cost - vendorAmount, 'MESSAGE', message.id, 'Paid chat commission');
       await tx.conversation.update({ where: { id }, data: { lastMessageAt: new Date() } });
       await tx.notification.create({ data: { userId: receiverId, type: 'MESSAGE', title: 'New message', body: content.trim().slice(0, 120), data: { conversationId: id, messageId: message.id } } });
       return message;
