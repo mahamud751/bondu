@@ -1,0 +1,1 @@
+import{Module}from'@nestjs/common';import{WalletModule}from'../wallet/wallet.module';import{CallsController}from'./calls.controller';import{CallsService}from'./calls.service';@Module({imports:[WalletModule],controllers:[CallsController],providers:[CallsService]})export class CallsModule{}
