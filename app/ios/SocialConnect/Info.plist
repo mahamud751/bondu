@@ -2,10 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SocialConnect uses your microphone only during in-app voice and video calls.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>SocialConnect uses your camera only during in-app video calls and profile media selection.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>SocialConnect</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.socialconnect.payment</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>socialconnect</string></array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

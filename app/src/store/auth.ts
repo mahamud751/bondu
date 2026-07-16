@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { disconnectRealtime } from '../api/realtime';
 
 type State = {
   token: string | null;
@@ -20,6 +21,7 @@ export const useAuth = create<State>(set => ({
     set({ token: accessToken });
   },
   logout: async () => {
+    disconnectRealtime();
     await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'deviceId']);
     set({ token: null });
   },

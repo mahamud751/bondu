@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: SocialConnect
+    folder: SocialConnect
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

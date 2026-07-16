@@ -1,0 +1,13 @@
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { randomBytes } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
+@Injectable()
+export class ReferralsService {
+  constructor(private readonly db: PrismaService, private readonly wallets: WalletService) {}
+  async code(userId: string) { const existing = await this.db.referralCode.findUnique({ where: { userId } }); if (existing) return existing; const profile = await this.db.profile.findUniqueOrThrow({ where: { userId } }); const code = `${profile.username.slice(0, 8)}${randomBytes(3).toString('hex')}`.toUpperCase(); return this.db.referralCode.create({ data: { userId, code } }); }
+  async apply(userId: string, rawCode: string) { const code = await this.db.referralCode.findUnique({ where: { code: rawCode.trim().toUpperCase() } }); if (!code || !code.active) throw new NotFoundException('Referral code not found'); if (code.userId === userId) throw new ConflictException('You cannot refer yourself'); const paid = await this.db.payment.count({ where: { userId, status: 'APPROVED' } }); if (paid) throw new ConflictException('Referral must be applied before the first payment'); try { return await this.db.referral.create({ data: { referralCodeId: code.id, referrerId: code.userId, referredUserId: userId } }); } catch { throw new ConflictException('A referral is already attached to this account'); } }
+  async qualifyFirstPayment(tx: Prisma.TransactionClient, userId: string, paymentId: string) { const referral = await tx.referral.findUnique({ where: { referredUserId: userId } }); if (!referral || referral.status !== 'PENDING_PAYMENT') return; const claimed = await tx.referral.updateMany({ where: { id: referral.id, status: 'PENDING_PAYMENT' }, data: { status: 'QUALIFIED', qualifiedAt: new Date() } }); if (!claimed.count) return; for (const recipient of [referral.referrerId, referral.referredUserId]) { const amount = 50; await this.wallets.creditPromotional(tx, { userId: recipient, type: 'PROMOTIONAL_BONUS', direction: 'CREDIT', amount, referenceType: 'REFERRAL', referenceId: referral.id, description: 'Qualified referral reward', idempotencyKey: `referral:${referral.id}:${recipient}:first-payment` }); await tx.referralReward.create({ data: { referralId: referral.id, recipientId: recipient, amount, reason: 'FIRST_PAYMENT', referenceId: paymentId } }); } }
+  summary(userId: string) { return this.db.referral.findMany({ where: { referrerId: userId }, include: { referred: { select: { profile: { select: { displayName: true } } } }, rewards: { where: { recipientId: userId } } }, orderBy: { createdAt: 'desc' } }); }
+}

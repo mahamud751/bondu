@@ -1,0 +1,9 @@
+const { ConflictException,NotFoundException } = require('@nestjs/common');
+const { ReviewsService } = require('../dist/src/reviews/reviews.service');
+
+describe('ReviewsService moderation',()=>{
+  it('rejects reporting a hidden or missing review',async()=>{const service=new ReviewsService({review:{findUnique:jest.fn().mockResolvedValue(null)}});await expect(service.report('user','review',{reason:'SPAM'})).rejects.toBeInstanceOf(NotFoundException)});
+  it('prevents authors from reporting their own review',async()=>{const service=new ReviewsService({review:{findUnique:jest.fn().mockResolvedValue({id:'review',reviewerId:'user',status:'VISIBLE'})}});await expect(service.report('user','review',{reason:'OTHER'})).rejects.toBeInstanceOf(ConflictException)});
+  it('maps the unique report constraint to a safe duplicate response',async()=>{const db={review:{findUnique:jest.fn().mockResolvedValue({id:'review',reviewerId:'author',status:'VISIBLE'})},reviewReport:{create:jest.fn().mockRejectedValue(new Error('unique'))}},service=new ReviewsService(db);await expect(service.report('reporter','review',{reason:'SPAM'})).rejects.toBeInstanceOf(ConflictException)});
+  it('recalculates the public rating after a visibility decision',async()=>{const tx={review:{update:jest.fn().mockResolvedValue({id:'review',vendorId:'vendor'}) ,aggregate:jest.fn().mockResolvedValue({_avg:{rating:4.25},_count:4})},vendorProfile:{update:jest.fn().mockResolvedValue({})},auditLog:{create:jest.fn().mockResolvedValue({})}},db={$transaction:fn=>fn(tx)},service=new ReviewsService(db);await service.visibility({sub:'mod',role:'MODERATOR'},'review',{status:'HIDDEN',reason:'Personal information'});expect(tx.review.aggregate).toHaveBeenCalledWith(expect.objectContaining({where:{vendorId:'vendor',status:'VISIBLE'}}));expect(tx.vendorProfile.update).toHaveBeenCalledWith(expect.objectContaining({data:{averageRating:4.25}}))});
+});

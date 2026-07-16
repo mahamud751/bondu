@@ -1,0 +1,12 @@
+import React, { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { api } from '../api/client';
+import { Button, Card, Eyebrow, Field, Screen, Title } from '../components/UI';
+import { colors, spacing } from '../theme';
+const Rating = ({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) => <View style={styles.rating}><Text style={styles.label}>{label}</Text><View style={styles.stars}>{[1, 2, 3, 4, 5].map(star => <Pressable key={star} onPress={() => onChange(star)}><Text style={[styles.star, star <= value && styles.starActive]}>★</Text></Pressable>)}</View></View>;
+export function ReviewScreen({ route, navigation }: { route: any; navigation: any }) {
+  const { callId, title = 'Creator' } = route.params; const [rating, setRating] = useState(5); const [behaviourRating, setBehaviour] = useState(5); const [qualityRating, setQuality] = useState(5); const [comment, setComment] = useState(''); const [busy, setBusy] = useState(false);
+  const submit = async () => { try { setBusy(true); await api.post('/reviews', { callId, rating, behaviourRating, qualityRating, comment }); Alert.alert('Thank you', 'Your verified review helps keep the community trustworthy.'); navigation.goBack(); } catch (error: any) { Alert.alert('Review not submitted', error.response?.data?.message ?? 'Try again'); } finally { setBusy(false); } };
+  return <Screen scroll><Eyebrow>Verified interaction</Eyebrow><Title subtitle={`Share your experience with ${title}`}>Rate your call</Title><Card><Rating label="Overall experience" value={rating} onChange={setRating} /><Rating label="Behaviour" value={behaviourRating} onChange={setBehaviour} /><Rating label="Call quality" value={qualityRating} onChange={setQuality} /></Card><Field placeholder="Add a helpful comment (optional)" value={comment} onChangeText={setComment} multiline maxLength={1000} style={{ minHeight: 130, textAlignVertical: 'top', paddingTop: 16 }} /><Button title="Submit verified review" loading={busy} onPress={submit} /></Screen>;
+}
+const styles = StyleSheet.create({ rating: { paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.border }, label: { color: colors.text, fontWeight: '800', textAlign: 'center' }, stars: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: spacing.md }, star: { color: '#DCD9E1', fontSize: 30 }, starActive: { color: colors.gold } });

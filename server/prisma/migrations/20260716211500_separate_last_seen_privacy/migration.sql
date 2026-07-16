@@ -1,0 +1,1 @@
+ALTER TABLE "Profile" ADD COLUMN "hideLastSeen" BOOLEAN NOT NULL DEFAULT false;

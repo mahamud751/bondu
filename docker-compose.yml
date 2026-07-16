@@ -3,12 +3,165 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: socialconnect
-      POSTGRES_PASSWORD: socialconnect
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-socialconnect}
       POSTGRES_DB: socialconnect
     ports: ["5432:5432"]
     volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialconnect -d socialconnect"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   redis:
     image: redis:7-alpine
     ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    build:
+      context: ./server
+    env_file:
+      - ./server/.env
+    environment:
+      DATABASE_URL: postgresql://socialconnect:${POSTGRES_PASSWORD:-socialconnect}@postgres:5432/socialconnect?schema=public
+      REDIS_URL: redis://redis:6379
+      BACKGROUND_QUEUE_MODE: bullmq
+      BACKGROUND_PROCESS_ROLE: api
+      FILE_SCAN_PROVIDER: ${FILE_SCAN_PROVIDER:-disabled}
+      CLAMAV_HOST: clamav
+    ports: ["3000:3000"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  worker:
+    build:
+      context: ./server
+    command: ["node", "dist/src/worker.js"]
+    env_file:
+      - ./server/.env
+    environment:
+      DATABASE_URL: postgresql://socialconnect:${POSTGRES_PASSWORD:-socialconnect}@postgres:5432/socialconnect?schema=public
+      REDIS_URL: redis://redis:6379
+      BACKGROUND_QUEUE_MODE: bullmq
+      BACKGROUND_PROCESS_ROLE: worker
+      FILE_SCAN_PROVIDER: ${FILE_SCAN_PROVIDER:-disabled}
+      CLAMAV_HOST: clamav
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  admin:
+    build:
+      context: ./admin
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
+    ports: ["3001:3000"]
+    depends_on:
+      api:
+        condition: service_healthy
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["observability"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes: ["./docker/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro", "prometheus_data:/prometheus"]
+    ports: ["9090:9090"]
+    depends_on:
+      api:
+        condition: service_healthy
+  loki:
+    image: grafana/loki:3.5.3
+    profiles: ["observability"]
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports: ["3100:3100"]
+  promtail:
+    image: grafana/promtail:3.5.3
+    profiles: ["observability"]
+    command: ["-config.file=/etc/promtail/config.yml"]
+    volumes: ["./docker/observability/promtail.yml:/etc/promtail/config.yml:ro", "/var/run/docker.sock:/var/run/docker.sock:ro"]
+    depends_on: [loki]
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: ["observability"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes: ["./docker/observability/grafana:/etc/grafana/provisioning:ro", "grafana_data:/var/lib/grafana"]
+    ports: ["3002:3000"]
+    depends_on: [prometheus, loki]
+  nginx:
+    image: nginx:1.29-alpine
+    profiles: ["production"]
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./docker/nginx/socialconnect.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${TLS_CERT_DIR:-./docker/nginx/certs}:/etc/nginx/certs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      admin:
+        condition: service_started
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    profiles: ["production"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: socialconnect
+      POSTGRES_USER: socialconnect
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-socialconnect}
+      SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+      BACKUP_KEEP_WEEKS: ${BACKUP_KEEP_WEEKS:-4}
+      BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-6}
+      HEALTHCHECK_PORT: "8080"
+    volumes: ["postgres_backups:/backups"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  offsite-backup:
+    image: rclone/rclone:1.69
+    profiles: ["offsite-backup"]
+    environment:
+      RCLONE_CONFIG_OFFSITE_TYPE: s3
+      RCLONE_CONFIG_OFFSITE_PROVIDER: ${BACKUP_S3_PROVIDER:-Other}
+      RCLONE_CONFIG_OFFSITE_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:?Set BACKUP_S3_ACCESS_KEY_ID}
+      RCLONE_CONFIG_OFFSITE_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:?Set BACKUP_S3_SECRET_ACCESS_KEY}
+      RCLONE_CONFIG_OFFSITE_ENDPOINT: ${BACKUP_S3_ENDPOINT:?Set BACKUP_S3_ENDPOINT}
+      RCLONE_CONFIG_OFFSITE_REGION: ${BACKUP_S3_REGION:-auto}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:?Set BACKUP_S3_BUCKET}
+      BACKUP_SYNC_INTERVAL_SECONDS: ${BACKUP_SYNC_INTERVAL_SECONDS:-3600}
+      BACKUP_CRYPT_PASSWORD: ${BACKUP_CRYPT_PASSWORD:?Set BACKUP_CRYPT_PASSWORD}
+      BACKUP_CRYPT_SALT: ${BACKUP_CRYPT_SALT:?Set BACKUP_CRYPT_SALT}
+    entrypoint: ["/bin/sh", "/scripts/offsite-backup.sh"]
+    volumes:
+      - postgres_backups:/backups:ro
+      - ./docker/offsite-backup.sh:/scripts/offsite-backup.sh:ro
+    depends_on:
+      postgres-backup:
+        condition: service_started
+  clamav:
+    image: clamav/clamav:1.4
+    profiles: ["production"]
+    volumes: ["clamav_data:/var/lib/clamav"]
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
+  postgres_backups:
+  clamav_data:

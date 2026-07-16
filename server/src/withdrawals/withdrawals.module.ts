@@ -1,1 +1,1 @@
-import{Module}from'@nestjs/common';import{WithdrawalsController}from'./withdrawals.controller';@Module({controllers:[WithdrawalsController]})export class WithdrawalsModule{}
+import{Module}from'@nestjs/common';import{FraudModule}from'../fraud/fraud.module';import{WalletModule}from'../wallet/wallet.module';import{WithdrawalsController}from'./withdrawals.controller';@Module({imports:[WalletModule,FraudModule],controllers:[WithdrawalsController]})export class WithdrawalsModule{}

@@ -6,3 +6,5 @@ dist/
 coverage/
 ios/Pods/
 android/.gradle/
+docker/nginx/certs/*.pem
+docker/nginx/certs/*.key

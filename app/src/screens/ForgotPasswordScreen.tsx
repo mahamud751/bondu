@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { Alert, Text } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { api } from "../api/client";
 import { Button, Field, Screen, Title } from "../components/UI";
 import { colors } from "../theme";
 export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
   const [phone, setPhone] = useState(""),
+    [email, setEmail] = useState(""),
+    [method, setMethod] = useState<'phone'|'email'>('phone'),
     [code, setCode] = useState(""),
     [password, setPassword] = useState(""),
     [sent, setSent] = useState(false),
@@ -12,7 +14,7 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
   const request = async () => {
     try {
       setBusy(true);
-      const { data } = await api.post("/auth/forgot-password", { phone });
+      const { data } = await api.post(method==='email'?"/auth/email/send-code":"/auth/forgot-password", method==='email'?{email:email.trim().toLowerCase(),purpose:'RESET_PASSWORD'}:{ phone });
       setSent(true);
       if (data.developmentCode)
         Alert.alert("Development OTP", data.developmentCode);
@@ -28,8 +30,8 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
   const reset = async () => {
     try {
       setBusy(true);
-      await api.post("/auth/reset-password", {
-        phone,
+      await api.post(method==='email'?"/auth/email/reset-password":"/auth/reset-password", {
+        ...(method==='email'?{email:email.trim().toLowerCase()}:{phone}),
         code,
         newPassword: password,
       });
@@ -45,15 +47,16 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
     <Screen>
       <Title>Reset password</Title>
       <Text style={{ color: colors.muted, marginBottom: 15 }}>
-        We will verify your registered phone number.
+        We will verify your registered phone number or email address.
       </Text>
-      <Field
+      {!sent?<View style={{flexDirection:'row',gap:10,marginBottom:8}}><Button title="Phone" variant={method==='phone'?'primary':'secondary'} onPress={()=>setMethod('phone')}/><Button title="Email" variant={method==='email'?'primary':'secondary'} onPress={()=>setMethod('email')}/></View>:null}
+      {method==='phone'?<Field
         placeholder="Phone (01XXXXXXXXX)"
         keyboardType="phone-pad"
         editable={!sent}
         value={phone}
         onChangeText={setPhone}
-      />
+      />:<Field placeholder="Email address" keyboardType="email-address" autoCapitalize="none" editable={!sent} value={email} onChangeText={setEmail}/>}
       {sent && (
         <>
           <Field
@@ -79,7 +82,7 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
           busy ||
           (sent
             ? code.length !== 6 || password.length < 8
-            : !/^01\d{9}$/.test(phone))
+            : method==='phone'?!/^01\d{9}$/.test(phone):!/^\S+@\S+\.\S+$/.test(email))
         }
         onPress={sent ? reset : request}
       />

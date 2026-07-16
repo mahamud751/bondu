@@ -1,0 +1,4 @@
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+export class CreateTicketDto{@IsString()@Length(4,140)subject!:string;@IsIn(['ACCOUNT','PAYMENT','CALL','CHAT','VENDOR','WITHDRAWAL','SAFETY','OTHER'])category!:string;@IsString()@Length(10,4000)body!:string;@IsOptional()@IsArray()@ArrayMaxSize(5)@IsUUID('4',{each:true})evidenceIds?:string[]}
+export class ReplyTicketDto{@IsString()@Length(1,4000)body!:string;@IsOptional()@IsArray()@ArrayMaxSize(5)@IsUUID('4',{each:true})evidenceIds?:string[];@IsOptional()@IsBoolean()internal?:boolean}
+export class UpdateTicketDto{@IsOptional()@IsIn(['OPEN','WAITING_FOR_USER','IN_PROGRESS','RESOLVED','CLOSED'])status?:string;@IsOptional()@IsIn(['LOW','NORMAL','HIGH','URGENT'])priority?:string;@IsOptional()@IsUUID()assignedToId?:string}

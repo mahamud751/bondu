@@ -1,0 +1,22 @@
+CREATE TABLE "MessageReaction" (
+  "id" TEXT NOT NULL,
+  "messageId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "emoji" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MessageReaction_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE "MessageHidden" (
+  "messageId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "hiddenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MessageHidden_pkey" PRIMARY KEY ("messageId", "userId")
+);
+
+CREATE UNIQUE INDEX "MessageReaction_messageId_userId_key" ON "MessageReaction"("messageId", "userId");
+CREATE INDEX "MessageReaction_messageId_idx" ON "MessageReaction"("messageId");
+ALTER TABLE "MessageReaction" ADD CONSTRAINT "MessageReaction_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "Message"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "MessageReaction" ADD CONSTRAINT "MessageReaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "MessageHidden" ADD CONSTRAINT "MessageHidden_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "Message"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "MessageHidden" ADD CONSTRAINT "MessageHidden_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

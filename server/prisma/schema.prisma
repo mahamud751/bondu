@@ -15,6 +15,27 @@ enum Role {
   ADMIN
 }
 
+enum StaffPermissionKey {
+  VIEW_DASHBOARD
+  MANAGE_USERS
+  REVIEW_VENDORS
+  MANAGE_FINANCE
+  MODERATE_CONTENT
+  REVIEW_RISK
+  MANAGE_CATALOG
+  MANAGE_SETTINGS
+  VIEW_AUDIT_LOGS
+  EXPORT_DATA
+  MANAGE_STAFF
+}
+
+enum RestrictionType {
+  CALL
+  CHAT
+  GIFT
+  WITHDRAWAL
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -36,6 +57,8 @@ enum VendorStatus {
 enum PaymentGateway {
   BKASH
   NAGAD
+  STRIPE
+  SSLCOMMERZ
 }
 
 enum PaymentStatus {
@@ -45,6 +68,9 @@ enum PaymentStatus {
   REJECTED
   CANCELLED
   REFUNDED
+  PARTIALLY_REFUNDED
+  DISPUTED
+  CHARGEBACK
 }
 
 enum LedgerType {
@@ -72,8 +98,15 @@ enum Direction {
 
 enum PackageType {
   VOICE
+  VIDEO
   CHAT
   COMBINATION
+  SUBSCRIPTION
+}
+
+enum CallType {
+  VOICE
+  VIDEO
 }
 
 enum CallStatus {
@@ -102,6 +135,13 @@ enum WithdrawalStatus {
   CANCELLED
   FAILED
   REVERSED
+}
+
+enum EarningStatus {
+  PENDING
+  AVAILABLE
+  HELD
+  REFUNDED
 }
 
 enum ReportStatus {
@@ -183,12 +223,118 @@ model User {
   conversationsTwo   Conversation[]  @relation("ConversationTwo")
   sentMessages       Message[]       @relation("MessageSender")
   receivedMessages   Message[]       @relation("MessageReceiver")
+  messageReactions   MessageReaction[]
+  hiddenMessages     MessageHidden[]
   purchasedGiftCards UserGiftCard[]  @relation("GiftPurchaser")
   receivedGiftCards  UserGiftCard[]  @relation("GiftRecipient")
   following          Follow[]        @relation("Follower")
   followers          Follow[]        @relation("Following")
   connectionsSent    Connection[]    @relation("ConnectionRequester")
   connectionsReceived Connection[]   @relation("ConnectionRecipient")
+  reviewsMade        Review[]        @relation("ReviewAuthor")
+  files              FileAsset[]
+  loginAttempts      LoginAttempt[]
+  supportTickets     SupportTicket[] @relation("SupportRequester")
+  assignedTickets    SupportTicket[] @relation("SupportAssignee")
+  supportMessages    SupportMessage[]
+  authIdentities     AuthIdentity[]
+  reviewReports      ReviewReport[]
+  pushTokens         PushToken[]
+  notificationPreference NotificationPreference?
+  referralCode       ReferralCode?
+  referralAsReferred Referral?       @relation("ReferredUser")
+  referralsMade      Referral[]      @relation("ReferrerUser")
+  subscriptions      UserSubscription[]
+}
+
+model AuthIdentity {
+  id             String   @id @default(uuid())
+  userId         String
+  provider       String
+  providerUserId String
+  email          String?
+  createdAt      DateTime @default(now())
+  lastUsedAt     DateTime @default(now())
+  user           User     @relation(fields:[userId],references:[id],onDelete:Cascade)
+
+  @@unique([provider,providerUserId])
+  @@index([userId])
+}
+
+model OAuthNonce {
+  id        String   @id @default(uuid())
+  hash      String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt,usedAt])
+}
+
+model EmailCode {
+  id         String   @id @default(uuid())
+  email      String
+  purpose    String
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt, consumedAt])
+}
+
+model SupportTicket {
+  id           String   @id @default(uuid())
+  userId       String
+  assignedToId String?
+  subject      String
+  category     String
+  priority     String   @default("NORMAL")
+  status       String   @default("OPEN")
+  lastReplyAt  DateTime @default(now())
+  resolvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation("SupportRequester",fields:[userId],references:[id],onDelete:Cascade)
+  assignedTo   User?    @relation("SupportAssignee",fields:[assignedToId],references:[id],onDelete:SetNull)
+  messages     SupportMessage[]
+
+  @@index([userId,createdAt])
+  @@index([status,priority,lastReplyAt])
+}
+
+model SupportMessage {
+  id         String   @id @default(uuid())
+  ticketId   String
+  senderId   String
+  body       String
+  evidenceIds String[] @default([])
+  internal   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  ticket     SupportTicket @relation(fields:[ticketId],references:[id],onDelete:Cascade)
+  sender     User     @relation(fields:[senderId],references:[id],onDelete:Cascade)
+
+  @@index([ticketId,createdAt])
+}
+
+model LoginAttempt {
+  id         String   @id @default(uuid())
+  userId     String?
+  phoneHash  String
+  successful Boolean
+  riskLevel  String   @default("LOW")
+  reason     String?
+  ipAddress  String?
+  userAgent  String?
+  deviceId   String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields:[userId],references:[id],onDelete:SetNull)
+
+  @@index([phoneHash,createdAt])
+  @@index([userId,createdAt])
+  @@index([ipAddress,createdAt])
 }
 
 model Profile {
@@ -212,6 +358,7 @@ model Profile {
   lastSeenAt  DateTime?
   isVerified  Boolean  @default(false)
   hideOnline  Boolean  @default(false)
+  hideLastSeen Boolean @default(false)
   hideAge     Boolean  @default(false)
   hideLocation Boolean @default(false)
   discoverable Boolean @default(true)
@@ -225,19 +372,56 @@ model VendorProfile {
   userId             String        @unique
   status             VendorStatus  @default(DRAFT)
   legalName          String?
+  address            String?
+  contactEmail       String?
+  profileDescription String?
+  supportedLanguages String[]      @default([])
+  preferredWorkingHours String?
+  payoutMethod       String?
+  payoutAccountEncrypted String?
+  payoutAccountLast4 String?
   nidNumber          String?
   nidFrontUrl        String?
   nidBackUrl         String?
   selfieUrl          String?
+  identityProvider   String?
+  identityInquiryId  String?       @unique
+  identityStatus     String?
+  identityUpdatedAt  DateTime?
   commissionPercent  Int           @default(60)
   voiceRatePerMinute Int           @default(20)
+  videoRatePerMinute Int           @default(40)
+  voiceCallEnabled   Boolean       @default(true)
+  videoCallEnabled   Boolean       @default(false)
   paidChatRate       Int           @default(2)
   availableForCall   Boolean       @default(false)
+  breakActive        Boolean       @default(false)
+  autoAcceptCalls    Boolean       @default(false)
+  maximumDailyCalls  Int?
+  minimumCallerBalance Int         @default(0)
   averageRating      Decimal       @default(0) @db.Decimal(3, 2)
   approvedAt         DateTime?
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   calls              CallSession[]
   earnings           Earning[]
+  reviews            Review[]
+  schedules          VendorSchedule[]
+}
+
+model VendorSchedule {
+  id          String   @id @default(uuid())
+  vendorId    String
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+  timezone    String   @default("Asia/Dhaka")
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vendor      VendorProfile @relation(fields:[vendorId],references:[id],onDelete:Cascade)
+
+  @@unique([vendorId,dayOfWeek])
+  @@index([vendorId,enabled])
 }
 
 model Wallet {
@@ -295,10 +479,14 @@ model Payment {
   id              String         @id @default(uuid())
   userId          String
   gateway         PaymentGateway
-  receiverNumber  String
-  senderNumber    String
+  receiverNumber  String?
+  senderNumber    String?
   transactionId   String
+  orderReference  String?        @unique
+  gatewayIntentId String?        @unique
   amount          Int
+  currencyAmountMinor Int        @default(0)
+  conversionMinorPerPoint Int     @default(100)
   currency        String         @default("BDT")
   status          PaymentStatus  @default(SUBMITTED)
   rejectionReason String?
@@ -307,9 +495,80 @@ model Payment {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   user            User           @relation(fields: [userId], references: [id])
+  webhooks         PaymentWebhook[]
+  refunds          PaymentRefund[]
+  reconciliations  PaymentReconciliation[]
+  disputes          PaymentDispute[]
 
   @@unique([gateway, transactionId])
   @@index([status, createdAt])
+}
+
+model PaymentDispute {
+  id               String   @id @default(uuid())
+  paymentId        String
+  gatewayDisputeId String   @unique
+  amount           Int
+  currency         String
+  reason           String?
+  status           String
+  evidenceDueAt    DateTime?
+  resolvedAt       DateTime?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  payment          Payment  @relation(fields:[paymentId],references:[id],onDelete:Cascade)
+
+  @@index([status,createdAt])
+  @@index([paymentId,createdAt])
+}
+
+model PaymentWebhook {
+  id          String         @id @default(uuid())
+  gateway     PaymentGateway
+  eventId     String
+  eventType   String
+  paymentId   String?
+  payload     Json
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime       @default(now())
+  payment     Payment?       @relation(fields: [paymentId], references: [id])
+
+  @@unique([gateway, eventId])
+  @@index([processedAt, createdAt])
+}
+
+model PaymentRefund {
+  id                String   @id @default(uuid())
+  paymentId         String
+  amount            Int
+  reason            String
+  status            String   @default("PENDING")
+  gatewayRefundId   String?  @unique
+  idempotencyKey    String   @unique
+  requestedBy       String
+  processedAt       DateTime?
+  error             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  payment           Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId, status])
+}
+
+model PaymentReconciliation {
+  id             String   @id @default(uuid())
+  paymentId      String
+  gatewayStatus  String
+  localStatus    String
+  amountMatches  Boolean
+  statusMatches  Boolean
+  discrepancy    String?
+  checkedAt      DateTime @default(now())
+  payment        Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([checkedAt, discrepancy])
 }
 
 model Package {
@@ -319,6 +578,7 @@ model Package {
   price        Int
   points       Int           @default(0)
   voiceSeconds Int           @default(0)
+  videoSeconds Int           @default(0)
   messageCount Int           @default(0)
   validityDays Int
   active       Boolean       @default(true)
@@ -331,6 +591,7 @@ model UserPackage {
   userId                String
   packageId             String
   remainingVoiceSeconds Int
+  remainingVideoSeconds Int    @default(0)
   remainingMessages     Int
   expiresAt             DateTime
   active                Boolean  @default(true)
@@ -342,6 +603,7 @@ model CallSession {
   id              String        @id @default(uuid())
   callerId        String
   vendorId        String
+  callType        CallType     @default(VOICE)
   status          CallStatus    @default(REQUESTED)
   ratePerMinute   Int
   reservedAmount  Int
@@ -349,16 +611,79 @@ model CallSession {
   paymentSourceType String      @default("WALLET")
   paymentSourceId String?
   connectedAt     DateTime?
+  lastHeartbeatAt DateTime?
+  lastHeartbeatSeconds Int      @default(0)
   endedAt         DateTime?
   durationSeconds Int           @default(0)
   billedSeconds   Int           @default(0)
   grossAmount     Int           @default(0)
   vendorAmount    Int           @default(0)
   platformAmount  Int           @default(0)
+  provider        String        @default("AGORA")
+  providerSessionId String?
+  endedBy         String?
+  disconnectReason String?
+  disputeStatus   String        @default("NONE")
   idempotencyKey  String        @unique
   createdAt       DateTime      @default(now())
   vendor          VendorProfile @relation(fields: [vendorId], references: [id])
   earning         Earning?
+  review          Review?
+  participantEvents CallParticipantEvent[]
+
+  @@index([status, lastHeartbeatAt])
+}
+
+model CallParticipantEvent {
+  id        String   @id @default(uuid())
+  callId    String
+  userId    String
+  eventType String
+  eventTime DateTime @default(now())
+  metadata  Json?
+  createdAt DateTime @default(now())
+  call      CallSession @relation(fields:[callId],references:[id],onDelete:Cascade)
+
+  @@index([callId,eventTime])
+  @@index([userId,eventTime])
+}
+
+model Review {
+  id              String        @id @default(uuid())
+  reviewerId      String
+  vendorId        String
+  callId          String        @unique
+  rating          Int
+  behaviourRating Int
+  qualityRating   Int
+  comment         String?       @db.VarChar(1000)
+  status          String        @default("VISIBLE")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  reviewer        User          @relation("ReviewAuthor", fields: [reviewerId], references: [id])
+  vendor          VendorProfile @relation(fields: [vendorId], references: [id])
+  call            CallSession   @relation(fields: [callId], references: [id])
+  reports         ReviewReport[]
+
+  @@index([vendorId, status, createdAt])
+}
+
+model ReviewReport {
+  id         String   @id @default(uuid())
+  reviewId   String
+  reporterId String
+  reason     String
+  details    String?
+  status     String   @default("OPEN")
+  resolution String?
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt  DateTime @default(now())
+  review     Review   @relation(fields:[reviewId],references:[id],onDelete:Cascade)
+  reporter   User     @relation(fields:[reporterId],references:[id],onDelete:Cascade)
+
+  @@unique([reviewId,reporterId])
+  @@index([status,createdAt])
 }
 
 model Earning {
@@ -370,19 +695,49 @@ model Earning {
   grossAmount    Int
   vendorAmount   Int
   platformAmount Int
+  status         EarningStatus @default(PENDING)
   availableAt    DateTime
   createdAt      DateTime      @default(now())
   vendor         VendorProfile @relation(fields: [vendorId], references: [id])
   call           CallSession?  @relation(fields: [callId], references: [id])
+
+  @@index([status, availableAt])
 }
 
 model DigitalGift {
   id            String  @id @default(uuid())
   name          String
   iconUrl       String
+  animationUrl  String?
+  category      String  @default("STANDARD")
   pointPrice    Int
   vendorPercent Int     @default(60)
   active        Boolean @default(true)
+  enabledInCalls Boolean @default(true)
+  enabledInChats Boolean @default(true)
+  displayOrder  Int     @default(0)
+  transactions GiftTransaction[]
+}
+
+model GiftTransaction {
+  id             String   @id @default(uuid())
+  giftId         String
+  senderId       String
+  receiverId     String
+  callId         String?
+  conversationId String?
+  grossAmount    Int
+  vendorAmount   Int
+  platformAmount Int
+  status         String   @default("COMPLETED")
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+  gift           DigitalGift @relation(fields:[giftId],references:[id])
+
+  @@index([receiverId,createdAt])
+  @@index([senderId,createdAt])
+  @@index([callId,createdAt])
+  @@index([conversationId,createdAt])
 }
 
 model Withdrawal {
@@ -391,9 +746,11 @@ model Withdrawal {
   amount          Int
   fee             Int              @default(0)
   method          PaymentGateway
-  accountNumber   String
+  accountDetailsEncrypted String @map("accountNumber")
+  accountLast4    String?
   status          WithdrawalStatus @default(PENDING)
   rejectionReason String?
+  idempotencyKey  String           @unique
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   user            User             @relation(fields: [userId], references: [id])
@@ -405,10 +762,98 @@ model Report {
   reportedUserId String
   category       String
   description    String
+  evidenceUrls   String[]     @default([])
+  priority       String       @default("NORMAL")
+  assignedModeratorId String?
+  resolution     String?
+  resolvedAt     DateTime?
   status         ReportStatus @default(OPEN)
   createdAt      DateTime     @default(now())
   reporter       User         @relation("Reporter", fields: [reporterId], references: [id])
   reported       User         @relation("Reported", fields: [reportedUserId], references: [id])
+}
+
+model BlockedTerm {
+  id          String   @id @default(uuid())
+  term        String   @unique
+  category    String
+  severity    String   @default("BLOCK")
+  active      Boolean  @default(true)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ModerationEvent {
+  id          String   @id @default(uuid())
+  userId      String
+  entityType  String
+  entityId    String?
+  category    String
+  severity    String
+  matchedText String?
+  action      String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([category, createdAt])
+}
+
+model ModerationAppeal {
+  id          String   @id @default(uuid())
+  userId      String
+  targetType  String
+  targetId    String?
+  reason      String
+  status      String   @default("OPEN")
+  resolution  String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model UserRestriction {
+  id         String          @id @default(uuid())
+  userId     String
+  type       RestrictionType
+  reason     String
+  sourceType String
+  sourceId   String
+  appliedBy  String?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  revokedBy  String?
+  createdAt  DateTime        @default(now())
+
+  @@unique([sourceType,sourceId,type])
+  @@index([userId,type,expiresAt,revokedAt])
+}
+
+model FileAsset {
+  id           String   @id @default(uuid())
+  ownerId      String
+  category     String
+  storageKey   String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  visibility   String   @default("PRIVATE")
+  status       String   @default("PENDING")
+  checksum     String?
+  scanProvider String?
+  scanResult   String?
+  scanAttempts Int      @default(0)
+  scannedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, category, createdAt])
 }
 
 model OtpCode {
@@ -465,6 +910,20 @@ model AuditLog {
   @@index([entityType, entityId, createdAt])
 }
 
+model StaffPermission {
+  id         String             @id @default(uuid())
+  userId     String
+  permission StaffPermissionKey
+  allowed    Boolean
+  grantedBy  String
+  reason     String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@unique([userId, permission])
+  @@index([userId, allowed])
+}
+
 model Block {
   id            String   @id @default(uuid())
   blockerId     String
@@ -504,6 +963,36 @@ model Connection {
   @@index([recipientId, status, createdAt])
 }
 
+model RtcWebhookEvent {
+  id          String   @id @default(uuid())
+  provider    String
+  eventId     String
+  eventType   String
+  channelName String?
+  payload     Json
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([processedAt, createdAt])
+}
+
+model IdentityWebhookEvent {
+  id          String   @id @default(uuid())
+  provider    String
+  eventId     String
+  eventType   String
+  inquiryId   String?
+  payload     Json
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@unique([provider,eventId])
+  @@index([processedAt,createdAt])
+}
+
 model Conversation {
   id            String    @id @default(uuid())
   userOneId     String
@@ -541,8 +1030,33 @@ model Message {
   conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User          @relation("MessageSender", fields: [senderId], references: [id])
   receiver       User          @relation("MessageReceiver", fields: [receiverId], references: [id])
+  reactions      MessageReaction[]
+  hiddenFor      MessageHidden[]
 
   @@index([conversationId, createdAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+}
+
+model MessageHidden {
+  messageId String
+  userId    String
+  hiddenAt  DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
 }
 
 model GiftCard {
@@ -551,6 +1065,7 @@ model GiftCard {
   type           PackageType
   price          Int
   voiceSeconds   Int            @default(0)
+  videoSeconds   Int            @default(0)
   messageCount   Int            @default(0)
   validityDays   Int
   transferable   Boolean        @default(false)
@@ -567,6 +1082,7 @@ model UserGiftCard {
   recipientId           String
   vendorId              String?
   remainingVoiceSeconds Int            @default(0)
+  remainingVideoSeconds Int            @default(0)
   remainingMessages     Int            @default(0)
   status                GiftCardStatus @default(ACTIVE)
   activatedAt           DateTime?
@@ -585,8 +1101,153 @@ model Notification {
   body      String
   data      Json?
   readAt    DateTime?
+  dispatchedAt DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt, createdAt])
+}
+
+model PushToken {
+  id         String   @id @default(uuid())
+  userId     String
+  deviceId   String
+  token      String   @unique
+  platform   String
+  active     Boolean  @default(true)
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([userId, active])
+}
+
+model NotificationPreference {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  pushEnabled Boolean  @default(true)
+  emailEnabled Boolean @default(true)
+  smsSecurity Boolean  @default(true)
+  mutedTypes  String[] @default([])
+  quietStart  String?
+  quietEnd    String?
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationDelivery {
+  id             String   @id @default(uuid())
+  notificationId String
+  channel        String
+  destination    String?
+  status         String
+  providerId     String?
+  error          String?
+  attemptedAt    DateTime @default(now())
+
+  @@index([notificationId, channel])
+}
+
+model NotificationCampaign {
+  id          String   @id @default(uuid())
+  title       String
+  body        String
+  type        String
+  audience    Json
+  createdBy   String
+  recipientCount Int
+  status      String   @default("QUEUED")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model FraudAssessment {
+  id         String   @id @default(uuid())
+  userId     String
+  context    String
+  referenceId String?
+  score      Int
+  reasons    String[]
+  action     String
+  metadata   Json?
+  reviewedBy String?
+  reviewedAt DateTime?
+  resolution String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model MembershipPlan {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  description  String
+  price        Int
+  currency     String   @default("BDT")
+  durationDays Int
+  benefits     Json
+  badge        String?
+  displayOrder Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  subscriptions UserSubscription[]
+}
+
+model UserSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  planId    String
+  status    String   @default("ACTIVE")
+  startsAt  DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      MembershipPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId, status, expiresAt])
+}
+
+model ReferralCode {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  code      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrals Referral[]
+}
+
+model Referral {
+  id             String   @id @default(uuid())
+  referralCodeId String
+  referrerId     String
+  referredUserId String   @unique
+  status         String   @default("PENDING_PAYMENT")
+  qualifiedAt    DateTime?
+  createdAt      DateTime @default(now())
+  code           ReferralCode @relation(fields: [referralCodeId], references: [id])
+  referrer       User     @relation("ReferrerUser", fields: [referrerId], references: [id])
+  referred       User     @relation("ReferredUser", fields: [referredUserId], references: [id])
+  rewards        ReferralReward[]
+
+  @@index([referrerId, status])
+}
+
+model ReferralReward {
+  id          String   @id @default(uuid())
+  referralId  String
+  recipientId String
+  amount      Int
+  reason      String
+  referenceId String
+  createdAt   DateTime @default(now())
+  referral    Referral @relation(fields: [referralId], references: [id])
+
+  @@unique([referralId, recipientId, reason])
 }

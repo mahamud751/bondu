@@ -1,1 +1,1 @@
-import{Module}from'@nestjs/common';import{VendorsController}from'./vendors.controller';@Module({controllers:[VendorsController]})export class VendorsModule{}
+import{Module}from'@nestjs/common';import{VendorsController}from'./vendors.controller';import{PersonaController}from'./persona.controller';import{PersonaService}from'./persona.service';@Module({controllers:[VendorsController,PersonaController],providers:[PersonaService]})export class VendorsModule{}

@@ -7,8 +7,12 @@ import { RootNavigator } from './navigation/RootNavigator';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { ForgotPasswordScreen } from './screens/ForgotPasswordScreen';
+import { SocialAuthScreen } from './screens/SocialAuthScreen';
 import { useAuth } from './store/auth';
 import { colors } from './theme';
+import { PushRegistration } from './components/PushRegistration';
+import { IncomingCallListener } from './components/IncomingCallListener';
+import { navigationRef } from './navigation/navigationRef';
 
 const AuthStack = createNativeStackNavigator();
 function Authentication() {
@@ -16,6 +20,7 @@ function Authentication() {
     <AuthStack.Screen name="Login" component={LoginScreen} options={{headerShown:false}}/>
     <AuthStack.Screen name="Register" component={RegisterScreen} options={{title:'Create account'}}/>
     <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{title:'Reset password'}}/>
+    <AuthStack.Screen name="SocialAuth" component={SocialAuthScreen} options={{title:'Secure sign-in'}}/>
   </AuthStack.Navigator>;
 }
 export default function App() {
@@ -26,5 +31,5 @@ export default function App() {
   useEffect(() => { hydrate().finally(() => setReady(true)); }, [hydrate]);
   useEffect(() => { onAuthFailure(() => { void logout(); }); }, [logout]);
   if (!ready) return <View style={{flex:1,alignItems:'center',justifyContent:'center'}}><ActivityIndicator color={colors.primary}/></View>;
-  return <NavigationContainer>{token ? <RootNavigator/> : <Authentication/>}</NavigationContainer>;
+  return <NavigationContainer ref={navigationRef}>{token ? <><PushRegistration/><IncomingCallListener/><RootNavigator/></> : <Authentication/>}</NavigationContainer>;
 }

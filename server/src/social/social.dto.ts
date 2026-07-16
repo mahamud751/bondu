@@ -9,5 +9,10 @@ export class SearchUsersDto {
   @IsOptional() @IsEnum(['true','false']) online?: 'true'|'false';
   @IsOptional() @IsEnum(['true','false']) vendor?: 'true'|'false';
   @IsOptional() @Type(() => Number) @Min(1) @Max(1000) maxRate?: number;
+  @IsOptional() @Type(() => Number) @Min(0) @Max(5) minRating?: number;
+  @IsOptional() @IsEnum(['true','false']) voice?: 'true'|'false';
+  @IsOptional() @IsEnum(['true','false']) video?: 'true'|'false';
+  @IsOptional() @Type(() => Number) @Min(1) @Max(50) limit?: number;
+  @IsOptional() @Type(() => Number) @Min(0) @Max(5000) offset?: number;
 }
 export class UserTargetDto { @IsUUID() userId!: string; }

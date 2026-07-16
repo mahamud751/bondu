@@ -1,19 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { api } from '../api/client';
-import { Button, Card, Screen, Title } from '../components/UI';
-import { colors } from '../theme';
+import { Card, EmptyState, Eyebrow, Metric, Pill, Screen, SectionTitle, Title } from '../components/UI';
+import { colors, radius, spacing } from '../theme';
 
+const icon: Record<string, string> = { DEPOSIT: '＋', PACKAGE_PURCHASE: '◫', GIFT_PURCHASE: '♥', CALL_CHARGE: '◉', CHAT_CHARGE: '✉', VENDOR_EARNING: '↗', WITHDRAWAL: '↙', PROMOTIONAL_BONUS: '✦', RELEASE: '✓' };
 export function WalletScreen() {
-  const [wallet, setWallet] = useState<any>();
-  const navigation = useNavigation<any>();
-  useEffect(() => { api.get('/wallet').then(response => setWallet(response.data)); }, []);
-  return <Screen><Title>Wallet</Title><ScrollView>
-    <Card><Text style={{ color: colors.muted }}>Available points</Text><Text style={{ fontSize: 36, fontWeight: '900', color: colors.text }}>{wallet?.purchased ?? 0}</Text><Text style={{ color: colors.muted }}>Reserved: {wallet?.reserved ?? 0}</Text></Card>
-    <Button title="Add points with bKash / Nagad" onPress={() => navigation.navigate('AddMoney')} />
-    <Button title="Browse packages" onPress={() => navigation.navigate('Packages')} />
-    <Button title="Gift card store and wallet" onPress={() => navigation.navigate('GiftCards')} />
-    <Card><Text style={{ fontWeight: '700', color: colors.text }}>Vendor earnings</Text><Text style={{ color: colors.muted, marginTop: 8 }}>Pending: {wallet?.pendingEarning ?? 0}</Text><Text style={{ color: colors.success }}>Withdrawable: {wallet?.availableEarning ?? 0}</Text></Card>
-  </ScrollView></Screen>;
+  const [wallet, setWallet] = useState<any>(); const [transactions, setTransactions] = useState<any[]>([]); const [loading, setLoading] = useState(false); const navigation = useNavigation<any>();
+  const load = useCallback(() => { setLoading(true); return Promise.all([api.get('/wallet'), api.get('/wallet/transactions')]).then(([w, l]) => { setWallet(w.data); setTransactions(l.data); }).finally(() => setLoading(false)); }, []);
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  const available = (wallet?.purchased ?? 0) + (wallet?.promotional ?? 0) - (wallet?.reserved ?? 0);
+  return <Screen padded={false}><FlatList contentContainerStyle={styles.list} data={transactions} keyExtractor={item => item.id} refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />} ListHeaderComponent={<>
+    <Eyebrow>Your money, clearly</Eyebrow><Title subtitle="Points, earnings and every movement in one place">Wallet</Title>
+    <View style={styles.balanceCard}><Text style={styles.balanceLabel}>Available to spend</Text><Text style={styles.balance}>{available.toLocaleString()} <Text style={styles.points}>points</Text></Text><View style={styles.balanceMeta}><Text style={styles.balanceMetaText}>Purchased {wallet?.purchased ?? 0}</Text><Text style={styles.balanceMetaText}>Bonus {wallet?.promotional ?? 0}</Text><Text style={styles.balanceMetaText}>Reserved {wallet?.reserved ?? 0}</Text></View><Pressable style={styles.add} onPress={() => navigation.navigate('AddMoney')}><Text style={styles.addText}>＋ Add points</Text></Pressable></View>
+    <View style={styles.actionRow}><Pressable style={styles.action} onPress={() => navigation.navigate('Packages')}><Text style={styles.actionIcon}>◫</Text><Text style={styles.actionText}>Packages</Text></Pressable><Pressable style={styles.action} onPress={() => navigation.navigate('GiftCards')}><Text style={styles.actionIcon}>◇</Text><Text style={styles.actionText}>Gift cards</Text></Pressable><Pressable style={styles.action} onPress={() => navigation.navigate('VendorDashboard')}><Text style={styles.actionIcon}>↗</Text><Text style={styles.actionText}>Earnings</Text></Pressable></View>
+    <SectionTitle>Creator earnings</SectionTitle><Card style={styles.metrics}><Metric label="Pending" value={wallet?.pendingEarning ?? 0} tone="gold" /><Metric label="Available" value={wallet?.availableEarning ?? 0} tone="success" /><Metric label="On hold" value={wallet?.held ?? 0} /></Card>
+    <SectionTitle>Recent activity</SectionTitle>
+  </>} ListEmptyComponent={!loading ? <EmptyState icon="◇" title="No transactions yet" body="Deposits, calls, gifts and earnings will appear here." /> : null} renderItem={({ item }) => { const credit = item.direction === 'CREDIT'; return <View style={styles.transaction}><View style={[styles.transactionIcon, credit ? styles.creditIcon : styles.debitIcon]}><Text style={{ color: credit ? colors.success : colors.primary, fontWeight: '900' }}>{icon[item.type] ?? '•'}</Text></View><View style={styles.transactionInfo}><Text style={styles.transactionTitle}>{item.description}</Text><Text style={styles.transactionDate}>{new Date(item.createdAt).toLocaleDateString()} · {item.type.replaceAll('_', ' ').toLowerCase()}</Text></View><View style={styles.amountWrap}><Text style={[styles.amount, { color: credit ? colors.success : colors.text }]}>{credit ? '+' : '−'}{item.amount}</Text><Pill label={credit ? 'Credit' : 'Debit'} tone={credit ? 'success' : 'neutral'} /></View></View>; }} /></Screen>;
 }
+const styles = StyleSheet.create({ list: { padding: spacing.xl, paddingBottom: 120 }, balanceCard: { backgroundColor: colors.dark, borderRadius: radius.xl, padding: 24, overflow: 'hidden' }, balanceLabel: { color: '#BDB4DF', fontWeight: '700' }, balance: { color: '#FFF', fontSize: 35, fontWeight: '900', marginTop: 7 }, points: { fontSize: 15, color: '#CFC6F0', fontWeight: '600' }, balanceMeta: { flexDirection: 'row', gap: 14, marginTop: 16 }, balanceMetaText: { color: '#CFC6F0', fontSize: 11 }, add: { alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 10, marginTop: 20 }, addText: { color: '#FFF', fontWeight: '800' }, actionRow: { flexDirection: 'row', gap: 10, marginTop: 14 }, action: { flex: 1, alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, paddingVertical: 15, borderWidth: 1, borderColor: colors.border }, actionIcon: { color: colors.primary, fontSize: 20 }, actionText: { color: colors.textSoft, fontWeight: '700', fontSize: 11, marginTop: 6 }, metrics: { flexDirection: 'row' }, transaction: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }, transactionIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, creditIcon: { backgroundColor: colors.successSoft }, debitIcon: { backgroundColor: colors.primaryLight }, transactionInfo: { flex: 1, marginHorizontal: 11 }, transactionTitle: { color: colors.text, fontWeight: '700', fontSize: 13 }, transactionDate: { color: colors.muted, fontSize: 10, marginTop: 4, textTransform: 'capitalize' }, amountWrap: { alignItems: 'flex-end', gap: 4 }, amount: { fontWeight: '900', fontSize: 14 } });

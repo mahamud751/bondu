@@ -2,14 +2,21 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchUsersDto } from './social.dto';
+import { publicProfile } from '../common/utilities/public-profile';
 
 @Injectable()
 export class SocialService {
   constructor(private readonly db: PrismaService) {}
   async search(userId: string, query: SearchUsersDto) {
     const blocked = await this.blockedIds(userId);
-    const where: Prisma.UserWhereInput = { id: { notIn: [userId, ...blocked] }, status: 'ACTIVE', profile: { is: { discoverable: true, ...(query.query ? { OR: [{ displayName: { contains: query.query, mode: 'insensitive' } }, { username: { contains: query.query, mode: 'insensitive' } }] } : {}), ...(query.country ? { country: { equals: query.country, mode: 'insensitive' } } : {}), ...(query.city ? { city: { equals: query.city, mode: 'insensitive' } } : {}), ...(query.language ? { languages: { has: query.language } } : {}), ...(query.interest ? { interests: { has: query.interest } } : {}), ...(query.online ? { online: query.online === 'true' } : {}) } }, ...(query.vendor === 'true' ? { vendor: { is: { status: 'APPROVED', ...(query.maxRate ? { voiceRatePerMinute: { lte: query.maxRate } } : {}) } } } : query.vendor === 'false' ? { vendor: null } : {}) };
-    return this.db.user.findMany({ where, select: this.publicSelect(userId), orderBy: [{ profile: { online: 'desc' } }, { createdAt: 'desc' }], take: 100 });
+    const vendorFilters:Prisma.VendorProfileWhereInput={status:'APPROVED',...(query.maxRate?{voiceRatePerMinute:{lte:query.maxRate}}:{}),...(query.minRating!==undefined?{averageRating:{gte:query.minRating}}:{}),...(query.voice?{voiceCallEnabled:query.voice==='true'}:{}),...(query.video?{videoCallEnabled:query.video==='true'}:{})};
+    const needsVendor=query.vendor==='true'||query.maxRate!==undefined||query.minRating!==undefined||query.voice!==undefined||query.video!==undefined;
+    const where: Prisma.UserWhereInput = {
+      id:{notIn:[userId,...blocked]},status:'ACTIVE',
+      profile:{is:{discoverable:true,...(query.query?{OR:[{displayName:{contains:query.query,mode:'insensitive'}},{username:{contains:query.query,mode:'insensitive'}}]}:{}),...(query.country?{country:{equals:query.country,mode:'insensitive'}}:{}),...(query.city?{city:{equals:query.city,mode:'insensitive'}}:{}),...(query.language?{languages:{has:query.language}}:{}),...(query.interest?{interests:{has:query.interest}}:{}),...(query.online?{online:query.online==='true',hideOnline:false}:{})}},
+      ...(needsVendor?{vendor:{is:vendorFilters}}:query.vendor==='false'?{vendor:null}:{})
+    };
+    const users=await this.db.user.findMany({ where, select: this.publicSelect(userId), orderBy: [{ profile: { online: 'desc' } }, { createdAt: 'desc' }], take: query.limit??30,skip:query.offset??0 });return users.map(user=>({...user,profile:publicProfile(user.profile)}));
   }
   async follow(userId: string, followingId: string) {
     await this.assertTarget(userId, followingId);
@@ -19,8 +26,8 @@ export class SocialService {
     return follow;
   }
   unfollow(userId: string, followingId: string) { return this.db.follow.deleteMany({ where: { followerId: userId, followingId } }); }
-  followers(userId: string) { return this.db.follow.findMany({ where: { followingId: userId }, include: { follower: { select: { id: true, profile: true, vendor: true } } }, orderBy: { createdAt: 'desc' } }); }
-  following(userId: string) { return this.db.follow.findMany({ where: { followerId: userId }, include: { following: { select: { id: true, profile: true, vendor: true } } }, orderBy: { createdAt: 'desc' } }); }
+  async followers(userId: string) { const rows=await this.db.follow.findMany({ where: { followingId: userId }, include: { follower: { select: { id: true, profile: true, vendor:{select:{id:true,status:true,averageRating:true,voiceRatePerMinute:true,availableForCall:true}} } } }, orderBy: { createdAt: 'desc' } });return rows.map(row=>({...row,follower:{...row.follower,profile:publicProfile(row.follower.profile)}})); }
+  async following(userId: string) { const rows=await this.db.follow.findMany({ where: { followerId: userId }, include: { following: { select: { id: true, profile: true, vendor:{select:{id:true,status:true,averageRating:true,voiceRatePerMinute:true,availableForCall:true}} } } }, orderBy: { createdAt: 'desc' } });return rows.map(row=>({...row,following:{...row.following,profile:publicProfile(row.following.profile)}})); }
   async request(userId: string, recipientId: string) {
     await this.assertTarget(userId, recipientId); await this.assertNotBlocked(userId, recipientId);
     const reverse = await this.db.connection.findUnique({ where: { requesterId_recipientId: { requesterId: recipientId, recipientId: userId } } });
