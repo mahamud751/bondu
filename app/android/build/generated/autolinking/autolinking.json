@@ -1,26 +1,50 @@
 {
-  "root": "/Users/pino/Documents/GitHub/bondu/app",
-  "reactNativePath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native",
+  "root": "/Users/pino/Documents/live/crazy/bondu/app",
+  "reactNativePath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native",
   "reactNativeVersion": "0.80",
   "dependencies": {
+    "@invertase/react-native-apple-authentication": {
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@invertase/react-native-apple-authentication",
+      "name": "@invertase/react-native-apple-authentication",
+      "platforms": {
+        "ios": {
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@invertase/react-native-apple-authentication/RNAppleAuthentication.podspec",
+          "version": "2.5.1",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@invertase/react-native-apple-authentication/android",
+          "packageImportPath": "import com.RNAppleAuthentication.AppleAuthenticationAndroidPackage;",
+          "packageInstance": "new AppleAuthenticationAndroidPackage()",
+          "buildTypes": [],
+          "componentDescriptors": [],
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@invertase/react-native-apple-authentication/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
     "@react-native-async-storage/async-storage": {
-      "root": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-async-storage/async-storage",
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-async-storage/async-storage",
       "name": "@react-native-async-storage/async-storage",
       "platforms": {
         "ios": {
-          "podspecPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec",
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec",
           "version": "2.2.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-async-storage/async-storage/android",
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-async-storage/async-storage/android",
           "packageImportPath": "import com.reactnativecommunity.asyncstorage.AsyncStoragePackage;",
           "packageInstance": "new AsyncStoragePackage()",
           "buildTypes": [],
           "libraryName": "rnasyncstorage",
           "componentDescriptors": [],
-          "cmakeListsPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -29,11 +53,11 @@
       }
     },
     "@react-native-firebase/app": {
-      "root": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/app",
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/app",
       "name": "@react-native-firebase/app",
       "platforms": {
         "ios": {
-          "podspecPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/app/RNFBApp.podspec",
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/app/RNFBApp.podspec",
           "version": "25.1.0",
           "configurations": [],
           "scriptPhases": [
@@ -48,12 +72,12 @@
           ]
         },
         "android": {
-          "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/app/android",
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/app/android",
           "packageImportPath": "import io.invertase.firebase.app.ReactNativeFirebaseAppPackage;",
           "packageInstance": "new ReactNativeFirebaseAppPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/app/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/app/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -62,22 +86,49 @@
       }
     },
     "@react-native-firebase/messaging": {
-      "root": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/messaging",
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/messaging",
       "name": "@react-native-firebase/messaging",
       "platforms": {
         "ios": {
-          "podspecPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/messaging/RNFBMessaging.podspec",
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/messaging/RNFBMessaging.podspec",
           "version": "25.1.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/messaging/android",
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/messaging/android",
           "packageImportPath": "import io.invertase.firebase.messaging.ReactNativeFirebaseMessagingPackage;",
           "packageInstance": "new ReactNativeFirebaseMessagingPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@react-native-firebase/messaging/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-firebase/messaging/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "@react-native-google-signin/google-signin": {
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-google-signin/google-signin",
+      "name": "@react-native-google-signin/google-signin",
+      "platforms": {
+        "ios": {
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-google-signin/google-signin/RNGoogleSignin.podspec",
+          "version": "16.1.2",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-google-signin/google-signin/android",
+          "packageImportPath": "import com.reactnativegooglesignin.RNGoogleSigninPackage;",
+          "packageInstance": "new RNGoogleSigninPackage()",
+          "buildTypes": [],
+          "libraryName": "RNGoogleSignInCGen",
+          "componentDescriptors": [
+            "RNGoogleSigninButtonComponentDescriptor"
+          ],
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@react-native-google-signin/google-signin/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -86,17 +137,17 @@
       }
     },
     "@stripe/stripe-react-native": {
-      "root": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@stripe/stripe-react-native",
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@stripe/stripe-react-native",
       "name": "@stripe/stripe-react-native",
       "platforms": {
         "ios": {
-          "podspecPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@stripe/stripe-react-native/stripe-react-native.podspec",
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@stripe/stripe-react-native/stripe-react-native.podspec",
           "version": "0.69.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@stripe/stripe-react-native/android",
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@stripe/stripe-react-native/android",
           "packageImportPath": "import com.reactnativestripesdk.StripeSdkPackage;",
           "packageInstance": "new StripeSdkPackage()",
           "buildTypes": [],
@@ -116,7 +167,7 @@
             "PaymentMethodMessagingElementViewComponentDescriptor",
             "StripeContainerComponentDescriptor"
           ],
-          "cmakeListsPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/@stripe/stripe-react-native/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/@stripe/stripe-react-native/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -125,17 +176,17 @@
       }
     },
     "react-native-agora": {
-      "root": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-agora",
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-agora",
       "name": "react-native-agora",
       "platforms": {
         "ios": {
-          "podspecPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-agora/react-native-agora.podspec",
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-agora/react-native-agora.podspec",
           "version": "4.6.2",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-agora/android",
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-agora/android",
           "packageImportPath": "import io.agora.rtc.ng.react.AgoraRtcNgPackage;",
           "packageInstance": "new AgoraRtcNgPackage()",
           "buildTypes": [],
@@ -144,7 +195,105 @@
             "AgoraRtcSurfaceViewComponentDescriptor",
             "AgoraRtcTextureViewComponentDescriptor"
           ],
-          "cmakeListsPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-agora/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-agora/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-image-picker": {
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-image-picker",
+      "name": "react-native-image-picker",
+      "platforms": {
+        "ios": {
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-image-picker/react-native-image-picker.podspec",
+          "version": "8.2.1",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-image-picker/android",
+          "packageImportPath": "import com.imagepicker.ImagePickerPackage;",
+          "packageInstance": "new ImagePickerPackage()",
+          "buildTypes": [],
+          "libraryName": "RNImagePickerSpec",
+          "componentDescriptors": [],
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-image-picker/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-linear-gradient": {
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-linear-gradient",
+      "name": "react-native-linear-gradient",
+      "platforms": {
+        "ios": {
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-linear-gradient/BVLinearGradient.podspec",
+          "version": "2.8.3",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-linear-gradient/android",
+          "packageImportPath": "import com.BV.LinearGradient.LinearGradientPackage;",
+          "packageInstance": "new LinearGradientPackage()",
+          "buildTypes": [],
+          "componentDescriptors": [],
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-linear-gradient/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-nitro-modules": {
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-modules",
+      "name": "react-native-nitro-modules",
+      "platforms": {
+        "ios": {
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-modules/NitroModules.podspec",
+          "version": "0.36.1",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-modules/android",
+          "packageImportPath": "import com.margelo.nitro.NitroModulesPackage;",
+          "packageInstance": "new NitroModulesPackage()",
+          "buildTypes": [],
+          "libraryName": "NitroModulesSpec",
+          "componentDescriptors": [],
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-modules/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-nitro-sound": {
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-sound",
+      "name": "react-native-nitro-sound",
+      "platforms": {
+        "ios": {
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-sound/NitroSound.podspec",
+          "version": "0.2.15",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-sound/android",
+          "packageImportPath": "import com.margelo.nitro.sound.SoundPackage;",
+          "packageInstance": "new SoundPackage()",
+          "buildTypes": [],
+          "componentDescriptors": [],
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-nitro-sound/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -153,17 +302,17 @@
       }
     },
     "react-native-safe-area-context": {
-      "root": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-safe-area-context",
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-safe-area-context",
       "name": "react-native-safe-area-context",
       "platforms": {
         "ios": {
-          "podspecPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec",
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec",
           "version": "5.8.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-safe-area-context/android",
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-safe-area-context/android",
           "packageImportPath": "import com.th3rdwave.safeareacontext.SafeAreaContextPackage;",
           "packageInstance": "new SafeAreaContextPackage()",
           "buildTypes": [],
@@ -172,7 +321,7 @@
             "RNCSafeAreaProviderComponentDescriptor",
             "RNCSafeAreaViewComponentDescriptor"
           ],
-          "cmakeListsPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt",
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -181,17 +330,17 @@
       }
     },
     "react-native-screens": {
-      "root": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-screens",
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-screens",
       "name": "react-native-screens",
       "platforms": {
         "ios": {
-          "podspecPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-screens/RNScreens.podspec",
-          "version": "4.26.1",
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-screens/RNScreens.podspec",
+          "version": "4.13.1",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-screens/android",
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-screens/android",
           "packageImportPath": "import com.swmansion.rnscreens.RNScreensPackage;",
           "packageInstance": "new RNScreensPackage()",
           "buildTypes": [],
@@ -208,14 +357,34 @@
             "RNSScreenFooterComponentDescriptor",
             "RNSScreenContentWrapperComponentDescriptor",
             "RNSModalScreenComponentDescriptor",
-            "RNSTabsHostComponentDescriptor",
-            "RNSSafeAreaViewComponentDescriptor",
-            "RNSStackScreenComponentDescriptor",
-            "RNSStackHeaderConfigComponentDescriptor",
-            "RNSStackHeaderSubviewComponentDescriptor",
-            "RNSFormSheetHostComponentDescriptor"
+            "RNSBottomTabsComponentDescriptor"
           ],
-          "cmakeListsPath": "/Users/pino/Documents/GitHub/bondu/app/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-vector-icons": {
+      "root": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-vector-icons",
+      "name": "react-native-vector-icons",
+      "platforms": {
+        "ios": {
+          "podspecPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-vector-icons/RNVectorIcons.podspec",
+          "version": "10.3.0",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-vector-icons/android",
+          "packageImportPath": "import com.oblador.vectoricons.VectorIconsPackage;",
+          "packageInstance": "new VectorIconsPackage()",
+          "buildTypes": [],
+          "libraryName": "RNVectorIconsSpec",
+          "componentDescriptors": [],
+          "cmakeListsPath": "/Users/pino/Documents/live/crazy/bondu/app/node_modules/react-native-vector-icons/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -386,7 +555,7 @@
         {
           "name": "--path <path>",
           "description": "Path to the React Native project root.",
-          "default": "/Users/pino/Documents/GitHub/bondu/app"
+          "default": "/Users/pino/Documents/live/crazy/bondu/app"
         },
         {
           "name": "--platform <string>",
@@ -442,8 +611,7 @@
         },
         {
           "name": "--terminal <string>",
-          "description": "Launches the Metro Bundler in a new window using the specified terminal path.",
-          "default": "vscode"
+          "description": "Launches the Metro Bundler in a new window using the specified terminal path."
         },
         {
           "name": "--binary-path <string>",
@@ -610,8 +778,7 @@
         },
         {
           "name": "--terminal <string>",
-          "description": "Launches the Metro Bundler in a new window using the specified terminal path.",
-          "default": "vscode"
+          "description": "Launches the Metro Bundler in a new window using the specified terminal path."
         },
         {
           "name": "--appId <string>",
@@ -686,7 +853,7 @@
   "assets": [],
   "project": {
     "ios": {
-      "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/ios",
+      "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/ios",
       "xcodeProject": {
         "name": "SocialConnect.xcodeproj",
         "path": ".",
@@ -695,7 +862,7 @@
       "assets": []
     },
     "android": {
-      "sourceDir": "/Users/pino/Documents/GitHub/bondu/app/android",
+      "sourceDir": "/Users/pino/Documents/live/crazy/bondu/app/android",
       "appName": "app",
       "packageName": "com.socialconnect",
       "applicationId": "com.socialconnect",

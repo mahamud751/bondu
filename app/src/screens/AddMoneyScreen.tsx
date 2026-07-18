@@ -12,7 +12,7 @@ import {
   initStripe,
   presentPaymentSheet,
 } from "@stripe/stripe-react-native";
-import { api } from "../api/client";
+import { api, apiErrorMessage } from '../api/client';
 import {
   Button,
   Card,
@@ -82,7 +82,7 @@ export function AddMoneyScreen() {
     } catch (error: any) {
       Alert.alert(
         "Payment not completed",
-        error.response?.data?.message ?? error.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);
@@ -100,7 +100,7 @@ export function AddMoneyScreen() {
     } catch (error: any) {
       Alert.alert(
         "Payment not started",
-        error.response?.data?.message ?? error.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);
@@ -123,7 +123,7 @@ export function AddMoneyScreen() {
     } catch (error: any) {
       Alert.alert(
         "Could not submit",
-        error.response?.data?.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);

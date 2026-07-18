@@ -1,11 +1,11 @@
 import React,{useEffect,useState}from'react';
 import{Alert,StyleSheet,Switch,Text,View}from'react-native';
-import{api}from'../api/client';
+import{api,apiErrorMessage}from'../api/client';
 import{Button,Card,Eyebrow,Field,Pill,Screen,SectionTitle,Title}from'../components/UI';
 import{useAuth}from'../store/auth';
 import{colors}from'../theme';
 
-const Toggle=({label,body,value,onChange}:{label:string;body:string;value:boolean;onChange:(value:boolean)=>void})=><View style={styles.toggle}><View style={styles.toggleInfo}><Text style={styles.toggleLabel}>{label}</Text><Text style={styles.toggleBody}>{body}</Text></View><Switch value={value} onValueChange={onChange} trackColor={{false:'#D9D6DF',true:'#B9AAFF'}} thumbColor={value?colors.primary:'#FFF'}/></View>;
+const Toggle=({label,body,value,onChange}:{label:string;body:string;value:boolean;onChange:(value:boolean)=>void})=><View style={styles.toggle}><View style={styles.toggleInfo}><Text style={styles.toggleLabel}>{label}</Text><Text style={styles.toggleBody}>{body}</Text></View><Switch value={value} onValueChange={onChange} trackColor={{false:colors.border,true:'#B9AAFF'}} thumbColor={value?colors.primary:'#FFF'}/></View>;
 const timePattern=/^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
 export function SettingsScreen(){
@@ -14,10 +14,10 @@ export function SettingsScreen(){
   useEffect(()=>{void load()},[]);
   const privacy=async(key:string,value:boolean)=>{setProfile((current:any)=>({...current,[key]:value}));try{await api.patch('/users/me/privacy',{[key]:value})}catch{setProfile((current:any)=>({...current,[key]:!value}))}};
   const preference=async(key:string,value:boolean)=>{setPreferences((current:any)=>({...current,[key]:value}));try{await api.patch('/notifications/preferences',{[key]:value})}catch{setPreferences((current:any)=>({...current,[key]:!value}))}};
-  const saveQuietHours=async()=>{if(!timePattern.test(preferences.quietStart)||!timePattern.test(preferences.quietEnd))return Alert.alert('Use 24-hour time','Enter times such as 22:00 and 07:00.');try{await api.patch('/notifications/preferences',{quietStart:preferences.quietStart,quietEnd:preferences.quietEnd});Alert.alert('Quiet hours saved','Nonessential push and email updates will pause during this window.')}catch(error:any){Alert.alert('Could not save quiet hours',error.response?.data?.message??'Try again')}};
-  const change=async()=>{try{await api.post('/auth/change-password',{currentPassword,newPassword});Alert.alert('Password changed','Sign in again with your new password.');await logout()}catch(error:any){Alert.alert('Could not change password',error.response?.data?.message??'Try again')}};
+  const saveQuietHours=async()=>{if(!timePattern.test(preferences.quietStart)||!timePattern.test(preferences.quietEnd))return Alert.alert('Use 24-hour time','Enter times such as 22:00 and 07:00.');try{await api.patch('/notifications/preferences',{quietStart:preferences.quietStart,quietEnd:preferences.quietEnd});Alert.alert('Quiet hours saved','Nonessential push and email updates will pause during this window.')}catch(error:any){Alert.alert('Could not save quiet hours',apiErrorMessage(error, 'Try again'))}};
+  const change=async()=>{try{await api.post('/auth/change-password',{currentPassword,newPassword});Alert.alert('Password changed','Sign in again with your new password.');await logout()}catch(error:any){Alert.alert('Could not change password',apiErrorMessage(error, 'Try again'))}};
   const revoke=async(deviceId:string)=>{await api.post('/auth/logout',{deviceId});await load()};
-  const remove=()=>Alert.alert('Delete account','Your public profile will be anonymized. Financial records are retained as required.',[{text:'Cancel',style:'cancel'},{text:'Delete permanently',style:'destructive',onPress:async()=>{try{await api.delete('/users/me',{data:{password:deletePassword}});await logout()}catch(error:any){Alert.alert('Could not delete account',error.response?.data?.message??'Try again')}}}]);
+  const remove=()=>Alert.alert('Delete account','Your public profile will be anonymized. Financial records are retained as required.',[{text:'Cancel',style:'cancel'},{text:'Delete permanently',style:'destructive',onPress:async()=>{try{await api.delete('/users/me',{data:{password:deletePassword}});await logout()}catch(error:any){Alert.alert('Could not delete account',apiErrorMessage(error, 'Try again'))}}}]);
   return <Screen scroll><Eyebrow>You stay in control</Eyebrow><Title subtitle="Privacy, notifications, sessions and account security">Settings</Title>
     <SectionTitle>Privacy</SectionTitle><Card style={styles.group}>
       <Toggle label="Show online status" body="Let people know when you are available" value={!profile.hideOnline} onChange={value=>privacy('hideOnline',!value)}/>
@@ -43,4 +43,4 @@ export function SettingsScreen(){
   </Screen>
 }
 
-const styles=StyleSheet.create({group:{paddingVertical:2},toggle:{flexDirection:'row',alignItems:'center',paddingVertical:15,borderBottomWidth:1,borderBottomColor:colors.border},toggleInfo:{flex:1,paddingRight:15},toggleLabel:{color:colors.text,fontWeight:'800',fontSize:13},toggleBody:{color:colors.muted,fontSize:11,lineHeight:16,marginTop:4},quietTitle:{color:colors.text,fontWeight:'900',fontSize:13,marginTop:16},quietRow:{flexDirection:'row',alignItems:'center',gap:10,marginTop:10},time:{flex:1},to:{color:colors.muted,fontWeight:'800'},device:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10},flex:{flex:1},deviceName:{color:colors.text,fontWeight:'800'},deviceMeta:{color:colors.muted,fontSize:10,marginTop:5},danger:{borderColor:'#F5CDD2',backgroundColor:'#FFF9FA'},dangerTitle:{color:colors.danger,fontWeight:'900',fontSize:16,marginBottom:5}});
+const styles=StyleSheet.create({group:{paddingVertical:2},toggle:{flexDirection:'row',alignItems:'center',paddingVertical:15,borderBottomWidth:1,borderBottomColor:colors.border},toggleInfo:{flex:1,paddingRight:15},toggleLabel:{color:colors.text,fontWeight:'800',fontSize:13},toggleBody:{color:colors.muted,fontSize:11,lineHeight:16,marginTop:4},quietTitle:{color:colors.text,fontWeight:'900',fontSize:13,marginTop:16},quietRow:{flexDirection:'row',alignItems:'center',gap:10,marginTop:10},time:{flex:1},to:{color:colors.muted,fontWeight:'800'},device:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10},flex:{flex:1},deviceName:{color:colors.text,fontWeight:'800'},deviceMeta:{color:colors.muted,fontSize:10,marginTop:5},danger:{borderColor:'#5A2530',backgroundColor:colors.dangerSoft},dangerTitle:{color:colors.danger,fontWeight:'900',fontSize:16,marginBottom:5}});

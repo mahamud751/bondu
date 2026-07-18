@@ -25,7 +25,7 @@ react {
 
     /* Bundling */
     //   A list containing the node command and its flags. Default is just 'node'.
-    // nodeExecutableAndArgs = ["node"]
+    nodeExecutableAndArgs = [System.getenv("NODE_BINARY") ?: "node"]
     //
     //   The command to run when bundling. By default is 'bundle'
     // bundleCommand = "ram-bundle"
@@ -106,6 +106,8 @@ android {
         }
     }
 }
+
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin

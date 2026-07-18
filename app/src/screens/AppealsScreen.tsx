@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { api } from "../api/client";
+import { api, apiErrorMessage } from '../api/client';
 import {
   Button,
   Card,
@@ -37,7 +37,7 @@ export function AppealsScreen() {
     } catch (error: any) {
       Alert.alert(
         "Could not submit appeal",
-        error.response?.data?.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);

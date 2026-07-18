@@ -6,5 +6,9 @@ dist/
 coverage/
 ios/Pods/
 android/.gradle/
+app/android/.gradle/
+app/android/build/
+app/android/app/build/
+app/android/app/.cxx/
 docker/nginx/certs/*.pem
 docker/nginx/certs/*.key

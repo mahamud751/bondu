@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Alert, ScrollView, Text } from "react-native";
-import { api } from "../api/client";
+import { api, apiErrorMessage } from "../api/client";
 import { Button, Card, Screen, Title } from "../components/UI";
 import { colors } from "../theme";
 export function GiftCardsScreen() {
@@ -28,8 +28,8 @@ export function GiftCardsScreen() {
       });
       Alert.alert("Purchased", `${card.name} is in your gift wallet.`);
       void load();
-    } catch (e: any) {
-      Alert.alert("Purchase failed", e.response?.data?.message ?? "Try again");
+    } catch (e: unknown) {
+      Alert.alert("Purchase failed", apiErrorMessage(e));
     }
   };
   return (

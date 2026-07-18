@@ -16,7 +16,7 @@ import Sound, {
   AudioEncoderAndroidType,
   OutputFormatAndroidType,
 } from "react-native-nitro-sound";
-import { API_URL, api } from "../api/client";
+import { API_URL, api , apiErrorMessage} from "../api/client";
 import { realtime } from "../api/realtime";
 import { Avatar, Field, Screen } from "../components/UI";
 import { colors, radius, spacing } from "../theme";
@@ -139,13 +139,13 @@ export function ChatScreen({
       setContent(text);
       Alert.alert(
         "Message not sent",
-        error.response?.data?.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);
     }
   };
-  const sendGift=async(gift:any)=>{const receiverId=conversation?.userOneId===me?conversation?.userTwoId:conversation?.userOneId;if(!receiverId)return;try{setBusy(true);await api.post(`/gifts/${gift.id}/send`,{receiverId,conversationId:id,idempotencyKey:`mobile-${Date.now()}-${Math.random()}`});setShowGifts(false);Alert.alert('Gift sent',`${gift.name} is now part of this conversation.`)}catch(error:any){Alert.alert('Gift not sent',error.response?.data?.message??'Try again')}finally{setBusy(false)}};
+  const sendGift=async(gift:any)=>{const receiverId=conversation?.userOneId===me?conversation?.userTwoId:conversation?.userOneId;if(!receiverId)return;try{setBusy(true);await api.post(`/gifts/${gift.id}/send`,{receiverId,conversationId:id,idempotencyKey:`mobile-${Date.now()}-${Math.random()}`});setShowGifts(false);Alert.alert('Gift sent',`${gift.name} is now part of this conversation.`)}catch(error:any){Alert.alert('Gift not sent',apiErrorMessage(error, 'Try again'))}finally{setBusy(false)}};
   const attach = async () => {
     const selection = await launchImageLibrary({
       mediaType: "mixed",
@@ -173,7 +173,7 @@ export function ChatScreen({
     } catch (error: any) {
       Alert.alert(
         "Attachment not sent",
-        error.response?.data?.message ?? error.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);
@@ -222,7 +222,7 @@ export function ChatScreen({
         Sound.removeRecordBackListener();
         Alert.alert(
           "Voice note not sent",
-          error.response?.data?.message ?? error.message ?? "Try again",
+          apiErrorMessage(error, "Try again"),
         );
       } finally {
         setBusy(false);
@@ -304,7 +304,7 @@ export function ChatScreen({
         .catch((error: any) =>
           Alert.alert(
             "Could not delete",
-            error.response?.data?.message ?? "Try again",
+            apiErrorMessage(error, "Try again"),
           ),
         );
     Alert.alert("Message actions", "React or remove this message", [
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
     marginBottom: 7,
     minWidth: 150,
   },
-  quotedMine: { borderLeftColor: "#D8D0FF", backgroundColor: "#FFFFFF20" },
+  quotedMine: { borderLeftColor: "rgba(255,255,255,0.6)", backgroundColor: "rgba(255,255,255,0.12)" },
   quotedLabel: {
     color: colors.primary,
     fontSize: 10,
@@ -560,11 +560,11 @@ const styles = StyleSheet.create({
   voiceIcon: { color: colors.primary, fontWeight: "900" },
   wave: { flex: 1, flexDirection: "row", alignItems: "center", gap: 3 },
   waveBar: { width: 3, borderRadius: 2, backgroundColor: colors.primary },
-  waveBarMine: { backgroundColor: "#DED6FF" },
+  waveBarMine: { backgroundColor: "rgba(255,255,255,0.75)" },
   voiceLabel: { color: colors.muted, fontSize: 10 },
   mineText: { color: "#FFF" },
   cost: { color: colors.gold, fontSize: 10, fontWeight: "700", marginTop: 5 },
-  mineCost: { color: "#DED6FF" },
+  mineCost: { color: "rgba(255,255,255,0.75)" },
   reactions: {
     alignSelf: "flex-end",
     flexDirection: "row",
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   },
   replyCloseText: { color: colors.muted, fontSize: 24 },
   composer: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgElevated,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     flexDirection: "row",
@@ -620,15 +620,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   attach: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.primaryLight,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primaryMuted,
     alignItems: "center",
     justifyContent: "center",
   },
   attachText: { color: colors.primary, fontSize: 22, fontWeight: "900" },
-  input: { flex: 1, marginBottom: 0, maxHeight: 110, paddingTop: 15 },
+  input: { flex: 1, marginBottom: 0, maxHeight: 110, paddingTop: 15, borderRadius: 22 },
   recording: { flex: 1, flexDirection: "row", alignItems: "center", gap: 9 },
   recordDot: {
     width: 9,
@@ -638,12 +638,12 @@ const styles = StyleSheet.create({
   },
   recordingText: { color: colors.danger, fontWeight: "800" },
   mic: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primaryMuted,
   },
   micActive: { backgroundColor: colors.danger },
   micText: { color: "#FFF", fontSize: 14 },

@@ -1,5 +1,5 @@
 import React from "react";
-import { Text } from "react-native";
+import { Platform, Text, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActiveCallScreen } from "../screens/ActiveCallScreen";
@@ -12,10 +12,13 @@ import { ChatScreen } from "../screens/ChatScreen";
 import { ConnectionsScreen } from "../screens/ConnectionsScreen";
 import { ConversationsScreen } from "../screens/ConversationsScreen";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
-import { EarningsScreen } from '../screens/EarningsScreen';
+import { EarningsScreen } from "../screens/EarningsScreen";
 import { GiftCardsScreen } from "../screens/GiftCardsScreen";
-import { HomeScreen } from "../screens/HomeScreen";
-import { LegalScreen } from '../screens/LegalScreen';
+import { GoLiveScreen } from "../screens/GoLiveScreen";
+import { DigitalGiftsScreen } from "../screens/DigitalGiftsScreen";
+import { DiscoverScreen } from "../screens/DiscoverScreen";
+import { LegalScreen } from "../screens/LegalScreen";
+import { LiveViewScreen } from "../screens/LiveViewScreen";
 import { MembershipsScreen } from "../screens/MembershipsScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { PackagesScreen } from "../screens/PackagesScreen";
@@ -23,23 +26,63 @@ import { ProfileScreen } from "../screens/ProfileScreen";
 import { ReferralsScreen } from "../screens/ReferralsScreen";
 import { ReviewScreen } from "../screens/ReviewScreen";
 import { SearchScreen } from "../screens/SearchScreen";
-import { SecurityActivityScreen } from '../screens/SecurityActivityScreen';
+import { SecurityActivityScreen } from "../screens/SecurityActivityScreen";
+import { SendGiftScreen } from "../screens/SendGiftScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SupportScreen } from "../screens/SupportScreen";
 import { VendorDashboardScreen } from "../screens/VendorDashboardScreen";
 import { VendorScreen } from "../screens/VendorScreen";
 import { WalletScreen } from "../screens/WalletScreen";
-import { colors, shadow } from "../theme";
+import { colors, radius, shadow } from "../theme";
 
-const Tabs = createBottomTabNavigator(),
-  Stack = createNativeStackNavigator();
+const Tabs = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
 const icons: Record<string, string> = {
-  Discover: "⌂",
+  Discover: "♡",
   Messages: "✉",
   Calls: "◉",
   Wallet: "◆",
   Profile: "●",
 };
+
+function TabIcon({
+  name,
+  color,
+  focused,
+}: {
+  name: string;
+  color: string;
+  focused: boolean;
+}) {
+  return (
+    <View style={{ alignItems: "center", justifyContent: "center" }}>
+      {focused ? (
+        <View
+          style={{
+            position: "absolute",
+            top: -6,
+            width: 28,
+            height: 3,
+            borderRadius: 2,
+            backgroundColor: colors.primary,
+          }}
+        />
+      ) : null}
+      <Text
+        style={{
+          color,
+          fontSize: focused ? 22 : 20,
+          fontWeight: "800",
+          opacity: focused ? 1 : 0.55,
+        }}
+      >
+        {icons[name]}
+      </Text>
+    </View>
+  );
+}
+
 function MainTabs() {
   return (
     <Tabs.Navigator
@@ -47,22 +90,36 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "700", marginBottom: 4 },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "700",
+          marginTop: 2,
+          letterSpacing: 0.3,
+        },
         tabBarStyle: {
-          height: 72,
-          paddingTop: 8,
+          position: "absolute",
+          left: 18,
+          right: 18,
+          bottom: Platform.OS === "ios" ? 20 : 14,
+          height: 76,
+          borderRadius: 28,
+          paddingTop: 10,
+          paddingBottom: 10,
           borderTopWidth: 0,
-          backgroundColor: colors.surface,
+          backgroundColor: "rgba(20,20,24,0.95)",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.08)",
           ...shadow,
         },
-        tabBarIcon: ({ color }) => (
-          <Text style={{ color, fontSize: 20, fontWeight: "900" }}>
-            {icons[route.name]}
-          </Text>
+        tabBarItemStyle: {
+          paddingVertical: 4,
+        },
+        tabBarIcon: ({ color, focused }) => (
+          <TabIcon name={route.name} color={color} focused={focused} />
         ),
       })}
     >
-      <Tabs.Screen name="Discover" component={HomeScreen} />
+      <Tabs.Screen name="Discover" component={DiscoverScreen} />
       <Tabs.Screen name="Messages" component={ConversationsScreen} />
       <Tabs.Screen name="Calls" component={CallsScreen} />
       <Tabs.Screen name="Wallet" component={WalletScreen} />
@@ -70,14 +127,22 @@ function MainTabs() {
     </Tabs.Navigator>
   );
 }
+
 export function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
         headerShadowVisible: false,
         headerTintColor: colors.text,
-        headerStyle: { backgroundColor: colors.bg },
-        headerTitleStyle: { fontWeight: "800" },
+        headerStyle: {
+          backgroundColor: colors.bg,
+        },
+        headerTitleStyle: {
+          fontWeight: "700",
+          fontSize: 17,
+        },
+        contentStyle: { backgroundColor: colors.bg },
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
       <Stack.Screen
@@ -96,7 +161,15 @@ export function RootNavigator() {
         component={ActiveCallScreen}
         options={{ headerShown: false, gestureEnabled: false }}
       />
-      <Stack.Screen name="IncomingCall" component={IncomingCallScreen} options={{headerShown:false,gestureEnabled:false,presentation:'fullScreenModal'}}/>
+      <Stack.Screen
+        name="IncomingCall"
+        component={IncomingCallScreen}
+        options={{
+          headerShown: false,
+          gestureEnabled: false,
+          presentation: "fullScreenModal",
+        }}
+      />
       <Stack.Screen
         name="Review"
         component={ReviewScreen}
@@ -105,7 +178,7 @@ export function RootNavigator() {
       <Stack.Screen
         name="Vendor"
         component={VendorScreen}
-        options={{ title: "Creator profile" }}
+        options={{ title: "Profile", headerTransparent: false }}
       />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Packages" component={PackagesScreen} />
@@ -121,6 +194,16 @@ export function RootNavigator() {
         options={{ title: "Gift cards" }}
       />
       <Stack.Screen
+        name="DigitalGifts"
+        component={DigitalGiftsScreen}
+        options={{ title: "Digital gifts" }}
+      />
+      <Stack.Screen
+        name="SendGift"
+        component={SendGiftScreen}
+        options={{ title: "Send gift" }}
+      />
+      <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
         options={{ title: "Edit profile" }}
@@ -130,7 +213,11 @@ export function RootNavigator() {
         component={VendorDashboardScreen}
         options={{ title: "Creator centre" }}
       />
-      <Stack.Screen name="Earnings" component={EarningsScreen} options={{title:'Creator earnings'}} />
+      <Stack.Screen
+        name="Earnings"
+        component={EarningsScreen}
+        options={{ title: "Creator earnings" }}
+      />
       <Stack.Screen
         name="Admin"
         component={AdminScreen}
@@ -149,8 +236,31 @@ export function RootNavigator() {
       />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Connections" component={ConnectionsScreen} />
-      <Stack.Screen name="SecurityActivity" component={SecurityActivityScreen} options={{title:'Security activity'}}/>
-      <Stack.Screen name="Legal" component={LegalScreen} options={({route}:any)=>({title:route.params?.type==='privacy'?'Privacy policy':'Terms and conditions'})}/>
+      <Stack.Screen
+        name="GoLive"
+        component={GoLiveScreen}
+        options={{ title: "Go live" }}
+      />
+      <Stack.Screen
+        name="LiveView"
+        component={LiveViewScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="SecurityActivity"
+        component={SecurityActivityScreen}
+        options={{ title: "Security activity" }}
+      />
+      <Stack.Screen
+        name="Legal"
+        component={LegalScreen}
+        options={({ route }: any) => ({
+          title:
+            route.params?.type === "privacy"
+              ? "Privacy policy"
+              : "Terms and conditions",
+        })}
+      />
     </Stack.Navigator>
   );
 }

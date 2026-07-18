@@ -12,7 +12,7 @@ import {
   launchCamera,
   launchImageLibrary,
 } from "react-native-image-picker";
-import { api } from "../api/client";
+import { api, apiErrorMessage } from '../api/client';
 import { uploadAsset } from "../api/uploads";
 import {
   Button,
@@ -112,7 +112,7 @@ export function VendorDashboardScreen() {
     } catch (error: any) {
       Alert.alert(
         "Could not submit",
-        error.response?.data?.message ?? error.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);
@@ -160,7 +160,7 @@ export function VendorDashboardScreen() {
     } catch (error: any) {
       Alert.alert(
         "Could not save schedule",
-        error.response?.data?.message ?? "Try again",
+        apiErrorMessage(error, "Try again"),
       );
     } finally {
       setBusy(false);
@@ -174,15 +174,13 @@ export function VendorDashboardScreen() {
     } catch (error: any) {
       Alert.alert(
         "Automated verification unavailable",
-        error.response?.data?.message ??
-          error.message ??
-          "Your manual review remains active.",
+        apiErrorMessage(error, "Your manual review remains active."),
       );
     } finally {
       setBusy(false);
     }
   };
-  const saveOperationalSettings=async()=>{try{setBusy(true);await api.patch('/vendors/operational-settings',{breakActive,autoAcceptCalls:autoAccept,maximumDailyCalls:Number(maximumDailyCalls)||0,minimumCallerBalance:Number(minimumCallerBalance)||0});await load();Alert.alert('Call preferences saved','Break status, automation and caller safeguards are now enforced by the server.')}catch(error:any){Alert.alert('Could not save preferences',error.response?.data?.message??'Try again')}finally{setBusy(false)}};
+  const saveOperationalSettings=async()=>{try{setBusy(true);await api.patch('/vendors/operational-settings',{breakActive,autoAcceptCalls:autoAccept,maximumDailyCalls:Number(maximumDailyCalls)||0,minimumCallerBalance:Number(minimumCallerBalance)||0});await load();Alert.alert('Call preferences saved','Break status, automation and caller safeguards are now enforced by the server.')}catch(error:any){Alert.alert('Could not save preferences',apiErrorMessage(error, 'Try again'))}finally{setBusy(false)}};
   return (
     <Screen scroll>
       <Eyebrow>CREATOR STUDIO</Eyebrow>

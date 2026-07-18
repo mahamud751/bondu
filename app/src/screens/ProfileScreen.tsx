@@ -14,20 +14,25 @@ import {
   Title,
 } from "../components/UI";
 import { useAuth } from "../store/auth";
-import { colors, radius } from "../theme";
+import { colors } from "../theme";
 
 const MenuItem = ({
   icon,
   title,
   body,
   onPress,
+  last,
 }: {
   icon: string;
   title: string;
   body: string;
   onPress: () => void;
+  last?: boolean;
 }) => (
-  <Pressable style={styles.menuItem} onPress={onPress}>
+  <Pressable
+    style={[styles.menuItem, last && { borderBottomWidth: 0 }]}
+    onPress={onPress}
+  >
     <View style={styles.menuIcon}>
       <Text style={styles.menuIconText}>{icon}</Text>
     </View>
@@ -38,6 +43,7 @@ const MenuItem = ({
     <Text style={styles.chevron}>›</Text>
   </Pressable>
 );
+
 export function ProfileScreen() {
   const [user, setUser] = useState<any>();
   const logout = useAuth((state) => state.logout);
@@ -49,15 +55,18 @@ export function ProfileScreen() {
   );
   const profile = user?.profile;
   const vendor = user?.vendor;
+
   return (
     <Screen scroll>
-      <Eyebrow>Your space</Eyebrow>
-      <Title subtitle="Profile, privacy and creator tools">Profile</Title>
+      <Eyebrow>You</Eyebrow>
+      <Title subtitle="Identity, privacy and creator tools">Profile</Title>
+
       <Card style={styles.hero}>
         <View style={styles.profileRow}>
           <Avatar
             name={profile?.displayName}
-            size={76}
+            avatarUrl={profile?.avatarUrl}
+            size={80}
             online={profile?.online}
           />
           <View style={styles.profileInfo}>
@@ -66,14 +75,16 @@ export function ProfileScreen() {
                 {profile?.displayName ?? "Loading…"}
               </Text>
               {profile?.isVerified ? (
-                <Text style={styles.verified}>✓</Text>
+                <View style={styles.verified}>
+                  <Text style={styles.verifiedMark}>✓</Text>
+                </View>
               ) : null}
             </View>
             <Text style={styles.handle}>@{profile?.username ?? "member"}</Text>
             <View style={styles.roles}>
               <Pill label={user?.role ?? "USER"} tone="primary" />
               {vendor?.status === "APPROVED" ? (
-                <Pill label="Verified creator" tone="success" />
+                <Pill label="Creator" tone="success" />
               ) : null}
             </View>
           </View>
@@ -97,6 +108,7 @@ export function ProfileScreen() {
           onPress={() => navigation.navigate("EditProfile")}
         />
       </Card>
+
       <SectionTitle>Account</SectionTitle>
       <Card style={styles.menu}>
         <MenuItem
@@ -109,69 +121,119 @@ export function ProfileScreen() {
           }
           onPress={() => navigation.navigate("VendorDashboard")}
         />
-        {vendor?.status === "APPROVED" ? <MenuItem icon="◆" title="Earnings and withdrawals" body="Revenue, commission, available balance and payouts" onPress={() => navigation.navigate("Earnings")}/> : null}
+        {vendor?.status === "APPROVED" ? (
+          <MenuItem
+            icon="◆"
+            title="Earnings"
+            body="Revenue, commission and payouts"
+            onPress={() => navigation.navigate("Earnings")}
+          />
+        ) : null}
         <MenuItem
-          icon="♢"
+          icon="♡"
           title="Notifications"
-          body="Calls, messages, gifts and account updates"
+          body="Calls, messages and account updates"
           onPress={() => navigation.navigate("Notifications")}
         />
         <MenuItem
           icon="⚙"
-          title="Privacy and settings"
+          title="Privacy & settings"
           body="Visibility, security and devices"
           onPress={() => navigation.navigate("Settings")}
         />
-        <MenuItem icon="⚿" title="Security activity" body="Sign-in risk, devices and revoke-all control" onPress={()=>navigation.navigate('SecurityActivity')}/>
+        <MenuItem
+          icon="⚿"
+          title="Security activity"
+          body="Sign-ins, devices and revoke control"
+          onPress={() => navigation.navigate("SecurityActivity")}
+        />
         <MenuItem
           icon="⚖"
-          title="Moderation appeals"
-          body="Request an independent review of a restriction"
+          title="Appeals"
+          body="Request review of a restriction"
           onPress={() => navigation.navigate("Appeals")}
+          last
         />
       </Card>
+
       {["ADMIN", "FINANCE", "MODERATOR"].includes(user?.role) ? (
         <>
-          <SectionTitle>Team tools</SectionTitle>
+          <SectionTitle>Team</SectionTitle>
           <Card style={styles.menu}>
             <MenuItem
               icon="▦"
-              title="Operations console"
+              title="Operations"
               body="Users, finance, safety and catalog"
               onPress={() => navigation.navigate("Admin")}
+              last
             />
           </Card>
         </>
       ) : null}
+
       <Button
         title="Sign out"
         icon="↗"
         variant="danger"
         onPress={() => void logout()}
       />
+      <View style={{ height: 40 }} />
     </Screen>
   );
 }
+
 const styles = StyleSheet.create({
-  hero: { padding: 20 },
-  profileRow: { flexDirection: "row", alignItems: "center" },
-  profileInfo: { flex: 1, marginLeft: 15 },
-  nameRow: { flexDirection: "row", alignItems: "center" },
-  name: { color: colors.text, fontSize: 21, fontWeight: "900" },
-  verified: {
-    color: "#FFF",
-    backgroundColor: colors.primary,
-    overflow: "hidden",
-    width: 19,
-    height: 19,
-    borderRadius: 10,
-    textAlign: "center",
-    fontSize: 12,
-    marginLeft: 6,
+  hero: {
+    padding: 20,
   },
-  handle: { color: colors.muted, marginTop: 3 },
-  roles: { flexDirection: "row", gap: 6, marginTop: 9 },
-  bio: { color: colors.textSoft, lineHeight: 21, marginTop: 17 },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  name: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+  },
+  verified: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  verifiedMark: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  handle: {
+    color: colors.muted,
+    marginTop: 4,
+    fontSize: 14,
+  },
+  roles: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 10,
+  },
+  bio: {
+    color: colors.textSoft,
+    lineHeight: 21,
+    marginTop: 16,
+    fontSize: 14,
+  },
   metrics: {
     flexDirection: "row",
     borderTopWidth: 1,
@@ -179,25 +241,48 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingTop: 16,
   },
-  menu: { paddingVertical: 4, paddingHorizontal: 15 },
+  menu: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    paddingVertical: 15,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
   menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.primaryMuted,
     alignItems: "center",
     justifyContent: "center",
   },
-  menuIconText: { color: colors.primary, fontWeight: "900", fontSize: 17 },
-  menuInfo: { flex: 1, marginLeft: 12 },
-  menuTitle: { color: colors.text, fontWeight: "800", fontSize: 14 },
-  menuBody: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  chevron: { color: colors.muted, fontSize: 25 },
+  menuIconText: {
+    color: colors.primary,
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  menuInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  menuTitle: {
+    color: colors.text,
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  menuBody: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 3,
+    lineHeight: 16,
+  },
+  chevron: {
+    color: colors.muted,
+    fontSize: 24,
+    opacity: 0.4,
+  },
 });

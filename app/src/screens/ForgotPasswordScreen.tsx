@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Alert, Text, View } from "react-native";
-import { api } from "../api/client";
+import { api, apiErrorMessage } from '../api/client';
 import { Button, Field, Screen, Title } from "../components/UI";
 import { colors } from "../theme";
 export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
@@ -21,7 +21,7 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
     } catch (e: any) {
       Alert.alert(
         "Could not send code",
-        e.response?.data?.message ?? "Try again",
+        apiErrorMessage(e, "Try again"),
       );
     } finally {
       setBusy(false);
@@ -38,7 +38,7 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
       Alert.alert("Password reset", "Sign in with your new password.");
       navigation.navigate("Login");
     } catch (e: any) {
-      Alert.alert("Reset failed", e.response?.data?.message ?? "Try again");
+      Alert.alert("Reset failed", apiErrorMessage(e, "Try again"));
     } finally {
       setBusy(false);
     }
