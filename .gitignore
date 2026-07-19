@@ -12,3 +12,7 @@ app/android/app/build/
 app/android/app/.cxx/
 docker/nginx/certs/*.pem
 docker/nginx/certs/*.key
+app/android/keystore.properties
+app/android/app/*.keystore
+app/android/app/*.jks
+!app/android/app/debug.keystore

@@ -174,7 +174,7 @@ export function DiscoverScreen() {
 
   const load = useCallback((activeFilter: string, country?: string) => {
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       api.get('/wallet'),
       api.get('/notifications/unread-count'),
       api.get('/users/me'),
@@ -184,13 +184,13 @@ export function DiscoverScreen() {
       api.get('/vendors/discover', { params: discoverParams(activeFilter, country) }),
     ])
       .then(([w, n, u, r, rw, l, c]) => {
-        setWallet(w.data);
-        setUnreadCount(n.data.count);
-        setMe(u.data);
-        setRequests(r.data);
-        setReward(rw.data);
-        setLiveSessions(l.data);
-        setCreators(c.data);
+        if (w.status === 'fulfilled') setWallet(w.value.data);
+        if (n.status === 'fulfilled') setUnreadCount(n.value.data.count);
+        if (u.status === 'fulfilled') setMe(u.value.data);
+        if (r.status === 'fulfilled') setRequests(r.value.data);
+        if (rw.status === 'fulfilled') setReward(rw.value.data);
+        if (l.status === 'fulfilled') setLiveSessions(l.value.data);
+        if (c.status === 'fulfilled') setCreators(c.value.data);
       })
       .finally(() => setLoading(false));
   }, []);
