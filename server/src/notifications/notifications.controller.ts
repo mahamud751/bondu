@@ -10,6 +10,7 @@ class PreferenceDto { @IsOptional() @IsBoolean() pushEnabled?: boolean; @IsOptio
 export class NotificationsController {
   constructor(private readonly db: PrismaService) {}
   @Get() list(@CurrentUser() user: { sub: string }) { return this.db.notification.findMany({ where: { userId: user.sub }, orderBy: { createdAt: 'desc' }, take: 100 }); }
+  @Get('unread-count') async unreadCount(@CurrentUser() user: { sub: string }) { return { count: await this.db.notification.count({ where: { userId: user.sub, readAt: null } }) }; }
   @Patch(':id/read') read(@Param('id') id: string, @CurrentUser() user: { sub: string }) { return this.db.notification.updateMany({ where: { id, userId: user.sub }, data: { readAt: new Date() } }); }
   @Patch('read-all') readAll(@CurrentUser() user: { sub: string }) { return this.db.notification.updateMany({ where: { userId: user.sub, readAt: null }, data: { readAt: new Date() } }); }
   @Post('push-tokens') token(@CurrentUser() user: { sub: string }, @Body() dto: PushTokenDto) { return this.db.pushToken.upsert({ where: { userId_deviceId: { userId: user.sub, deviceId: dto.deviceId } }, create: { userId: user.sub, ...dto }, update: { token: dto.token, platform: dto.platform, active: true, lastUsedAt: new Date() } }); }

@@ -13,6 +13,7 @@ import { FilesModule } from "./files/files.module";
 import { FraudModule } from "./fraud/fraud.module";
 import { HealthModule } from "./health/health.module";
 import { JobsModule } from "./jobs/jobs.module";
+import { LiveModule } from "./live/live.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { ModerationModule } from "./moderation/moderation.module";
 import { MetricsModule } from "./metrics/metrics.module";
@@ -24,6 +25,7 @@ import { ReportsModule } from "./reports/reports.module";
 import { RestrictionsModule } from "./restrictions/restrictions.module";
 import { EarningsModule } from './earnings/earnings.module';
 import { ReferralsModule } from "./referrals/referrals.module";
+import { RewardsModule } from "./rewards/rewards.module";
 import { SubscriptionsModule } from "./subscriptions/subscriptions.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SocialModule } from "./social/social.module";
@@ -114,6 +116,7 @@ const validateConfig = (config: Record<string, unknown>) => {
     SocialModule,
     WalletModule,
     ReferralsModule,
+    RewardsModule,
     PaymentsModule,
     VendorsModule,
     PackagesModule,
@@ -132,6 +135,7 @@ const validateConfig = (config: Record<string, unknown>) => {
     AdminModule,
     CallsModule,
     ChatModule,
+    LiveModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -8,16 +8,21 @@ export type RtcAccess = { provider: 'AGORA' | 'DEVELOPMENT'; appId: string | nul
 export class RtcTokenService {
   constructor(private readonly config: ConfigService) {}
   issue(callId: string, userId: string, ttlSeconds = 600): RtcAccess {
-    const channelName = `call_${callId}`;
+    return this.build(`call_${callId}`, userId, RtcRole.PUBLISHER, ttlSeconds);
+  }
+  issueLive(liveId: string, userId: string, role: 'HOST' | 'VIEWER', ttlSeconds = 14400): RtcAccess {
+    return this.build(`live_${liveId}`, userId, role === 'HOST' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER, ttlSeconds);
+  }
+  private build(channelName: string, userId: string, role: number, ttlSeconds: number): RtcAccess {
     const expiresAtSeconds = Math.floor(Date.now() / 1000) + ttlSeconds;
     const appId = this.config.get<string>('AGORA_APP_ID');
     const certificate = this.config.get<string>('AGORA_APP_CERTIFICATE');
     if (appId && certificate) {
-      const token = RtcTokenBuilder.buildTokenWithUserAccount(appId, certificate, channelName, userId, RtcRole.PUBLISHER, expiresAtSeconds, expiresAtSeconds);
+      const token = RtcTokenBuilder.buildTokenWithUserAccount(appId, certificate, channelName, userId, role, expiresAtSeconds, expiresAtSeconds);
       return { provider: 'AGORA', appId, channelName, token, userAccount: userId, expiresAt: new Date(expiresAtSeconds * 1000).toISOString() };
     }
     const secret = this.config.get<string>('RTC_DEVELOPMENT_SECRET') ?? 'local-rtc-only';
-    const token = createHmac('sha256', secret).update(`${channelName}:${userId}:${expiresAtSeconds}`).digest('hex');
+    const token = createHmac('sha256', secret).update(`${channelName}:${userId}:${role}:${expiresAtSeconds}`).digest('hex');
     return { provider: 'DEVELOPMENT', appId: null, channelName, token, userAccount: userId, expiresAt: new Date(expiresAtSeconds * 1000).toISOString() };
   }
 }

@@ -1,6 +1,6 @@
-import { BadRequestException, Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtGuard } from '../common/guards/jwt.guard';
@@ -33,11 +33,19 @@ class OperationalSettingsDto {
 }
 class ScheduleEntryDto{@IsInt()@Min(0)@Max(6)dayOfWeek!:number;@IsInt()@Min(0)@Max(1439)startMinute!:number;@IsInt()@Min(0)@Max(1439)endMinute!:number;@IsString()@MaxLength(80)timezone!:string;@IsBoolean()enabled!:boolean}
 class ScheduleDto{@IsArray()@ValidateNested({each:true})@Type(()=>ScheduleEntryDto)entries!:ScheduleEntryDto[]}
+class DiscoverQueryDto {
+  @IsOptional() @IsString() interest?: string;
+  @IsOptional() @IsIn(['popular','nearby','new']) sort?: 'popular'|'nearby'|'new';
+  @IsOptional() @IsString() country?: string;
+}
 
 @ApiTags('Vendors') @Controller('vendors')
 export class VendorsController {
   constructor(private readonly db: PrismaService, private readonly crypto: PayoutCryptoService) {}
-  @Get('discover') async discover() { const vendors=await this.db.vendorProfile.findMany({where:{status:'APPROVED',user:{status:'ACTIVE',profile:{is:{discoverable:true}}}},select:{id:true,userId:true,status:true,commissionPercent:true,voiceRatePerMinute:true,videoRatePerMinute:true,voiceCallEnabled:true,videoCallEnabled:true,paidChatRate:true,availableForCall:true,averageRating:true,approvedAt:true,user:{select:{profile:true}}},orderBy:[{availableForCall:'desc'},{averageRating:'desc'}],take:50});return vendors.map(vendor=>({...vendor,user:{profile:publicProfile(vendor.user.profile)}})); }
+  @Get('discover') async discover(@Query() q: DiscoverQueryDto) {
+    const where = { status: 'APPROVED' as const, user: { status: 'ACTIVE' as const, profile: { is: { discoverable: true, ...(q.interest ? { interests: { has: q.interest } } : {}), ...(q.sort === 'nearby' && q.country ? { country: { equals: q.country, mode: 'insensitive' as const } } : {}) } } } };
+    const orderBy = q.sort === 'popular' ? [{ averageRating: 'desc' as const }] : q.sort === 'new' ? [{ approvedAt: 'desc' as const }] : [{ availableForCall: 'desc' as const }, { averageRating: 'desc' as const }];
+    const vendors=await this.db.vendorProfile.findMany({where,select:{id:true,userId:true,status:true,commissionPercent:true,voiceRatePerMinute:true,videoRatePerMinute:true,voiceCallEnabled:true,videoCallEnabled:true,paidChatRate:true,availableForCall:true,averageRating:true,approvedAt:true,user:{select:{profile:true}}},orderBy,take:50});return vendors.map(vendor=>({...vendor,user:{profile:publicProfile(vendor.user.profile)}})); }
   @ApiBearerAuth() @UseGuards(JwtGuard) @Post('apply')
   async apply(@CurrentUser() user: { sub: string }, @Body() dto: ApplyDto) {
     const ids = [dto.nidFrontAssetId, dto.nidBackAssetId, dto.selfieAssetId];

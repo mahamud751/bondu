@@ -46,6 +46,18 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.user(recipientId, body.typing ? 'typing:start' : 'typing:stop', { conversationId: body.conversationId, userId: identity.sub });
   }
 
+  @SubscribeMessage('live:watch')
+  async watchLive(@ConnectedSocket() socket: Socket, @MessageBody() body: { liveId?: string }) {
+    if (!socket.data.identity || !body?.liveId) return;
+    await socket.join(`live:${body.liveId}`);
+  }
+  @SubscribeMessage('live:unwatch')
+  async unwatchLive(@ConnectedSocket() socket: Socket, @MessageBody() body: { liveId?: string }) {
+    if (!body?.liveId) return;
+    await socket.leave(`live:${body.liveId}`);
+  }
+
   user(userId: string, event: string, payload: unknown) { this.server?.to(`user:${userId}`).emit(event, payload); }
   users(userIds: string[], event: string, payload: unknown) { for (const id of new Set(userIds)) this.user(id, event, payload); }
+  room(room: string, event: string, payload: unknown) { this.server?.to(room).emit(event, payload); }
 }

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-export const API_URL = 'http://192.168.0.102:3000/api/v1';
+export const API_URL = 'https://socialapi.crazysolve.com/api/v1';
 export const api = axios.create({ baseURL: API_URL, timeout: 15000 });
 const refreshClient = axios.create({ baseURL: API_URL, timeout: 15000 });
 let refreshRequest: Promise<string> | null = null;
