@@ -1,4 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -42,10 +43,16 @@ class DiscoverQueryDto {
 @ApiTags('Vendors') @Controller('vendors')
 export class VendorsController {
   constructor(private readonly db: PrismaService, private readonly crypto: PayoutCryptoService) {}
-  @Get('discover') async discover(@Query() q: DiscoverQueryDto) {
-    const where = { status: 'APPROVED' as const, user: { status: 'ACTIVE' as const, profile: { is: { discoverable: true, ...(q.interest ? { interests: { has: q.interest } } : {}), ...(q.sort === 'nearby' && q.country ? { country: { equals: q.country, mode: 'insensitive' as const } } : {}) } } } };
-    const orderBy = q.sort === 'popular' ? [{ averageRating: 'desc' as const }] : q.sort === 'new' ? [{ approvedAt: 'desc' as const }] : [{ availableForCall: 'desc' as const }, { averageRating: 'desc' as const }];
-    const vendors=await this.db.vendorProfile.findMany({where,select:{id:true,userId:true,status:true,commissionPercent:true,voiceRatePerMinute:true,videoRatePerMinute:true,voiceCallEnabled:true,videoCallEnabled:true,paidChatRate:true,availableForCall:true,averageRating:true,approvedAt:true,user:{select:{profile:true}}},orderBy,take:50});return vendors.map(vendor=>({...vendor,user:{profile:publicProfile(vendor.user.profile)}})); }
+  @Get('discover') async discover(@Query('sort') sort?: string, @Query('country') country?: string, @Query('interest') interest?: string) {
+    const profileIs: Prisma.ProfileWhereInput = { discoverable: true, ...(interest ? { interests: { has: interest } } : {}), ...(country ? { country: { equals: country, mode: 'insensitive' } } : {}) };
+    const vendors = await this.db.vendorProfile.findMany({
+      where: { status: 'APPROVED', user: { status: 'ACTIVE', profile: { is: profileIs } } },
+      select: { id: true, userId: true, status: true, commissionPercent: true, voiceRatePerMinute: true, videoRatePerMinute: true, voiceCallEnabled: true, videoCallEnabled: true, paidChatRate: true, availableForCall: true, averageRating: true, approvedAt: true, user: { select: { profile: true } } },
+      orderBy: sort === 'new' ? [{ approvedAt: 'desc' }, { averageRating: 'desc' }] : sort === 'popular' ? [{ calls: { _count: 'desc' } }, { averageRating: 'desc' }] : [{ availableForCall: 'desc' }, { averageRating: 'desc' }],
+      take: 50,
+    });
+    return vendors.map(vendor => ({ ...vendor, user: { profile: publicProfile(vendor.user.profile) } }));
+  }
   @ApiBearerAuth() @UseGuards(JwtGuard) @Post('apply')
   async apply(@CurrentUser() user: { sub: string }, @Body() dto: ApplyDto) {
     const ids = [dto.nidFrontAssetId, dto.nidBackAssetId, dto.selfieAssetId];
