@@ -8,3 +8,7 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# Stripe's optional push-provisioning (Apple/Google Pay tap-to-pay) module isn't bundled
+# since this app doesn't use it; its classes are only referenced, never loaded.
+-dontwarn com.stripe.android.pushProvisioning.**
