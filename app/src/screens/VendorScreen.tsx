@@ -60,16 +60,27 @@ export function VendorScreen({
   const call = async (callType: 'VOICE' | 'VIDEO') => {
     try {
       setBusy(true);
-      await api.post('/calls/request', {
+      const { data } = await api.post('/calls/request', {
         vendorId: vendor.id,
         callType,
         maximumSeconds: 300,
         idempotencyKey: `mobile-${Date.now()}-${Math.random()}`,
       });
-      Alert.alert(
-        'Request sent',
-        `${profile.displayName} received your request.`,
-      );
+      // Messenger-style: caller enters ringing UI immediately; on accept both
+      // open ActiveCall and join the same Agora room together.
+      if (data?.status === 'ACCEPTED') {
+        navigation.navigate('ActiveCall', {
+          callId: data.id,
+          title: profile.displayName,
+          callType,
+        });
+      } else {
+        navigation.navigate('OutgoingCall', {
+          callId: data.id,
+          title: profile.displayName,
+          callType,
+        });
+      }
     } catch (error: any) {
       Alert.alert('Cannot call', apiErrorMessage(error, 'Try again'));
     } finally {

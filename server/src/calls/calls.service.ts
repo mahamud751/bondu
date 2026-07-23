@@ -174,31 +174,50 @@ export class CallsService {
       });
       return call;
     });
+    const payload = await this.callEventPayload(result.id);
     const vendor = await this.db.vendorProfile.findUnique({
       where: { id: result.vendorId },
     });
-    if (vendor) this.realtime.user(vendor.userId, "call:request", result);
-    if (result.status === "ACCEPTED") this.realtime.user(result.callerId, "call:accepted", { ...result, rtc: this.rtc.issue(result.id, result.callerId) });
-    return result;
+    if (vendor) this.realtime.user(vendor.userId, "call:request", payload);
+    if (result.status === "ACCEPTED" && vendor) {
+      // Auto-accept: put both parties into the active room immediately.
+      this.realtime.users(
+        [result.callerId, vendor.userId],
+        "call:accepted",
+        payload,
+      );
+    }
+    return payload;
   }
   async accept(id: string, userId: string) {
     const call = await this.ownedVendorCall(id, userId);
     if (call.status !== "REQUESTED")
       throw new ConflictException("Call is no longer requestable");
-    const updated = await this.db.callSession.update({
-        where: { id },
-        data: { status: "ACCEPTED" },
-      }),
-      result = { ...updated, rtc: this.rtc.issue(id, userId) };
-    this.realtime.user(call.callerId, "call:accepted", result);
-    return result;
+    await this.db.callSession.update({
+      where: { id },
+      data: { status: "ACCEPTED" },
+    });
+    const payload = await this.callEventPayload(id);
+    // Both sides must open the call screen at the same time (Messenger-style).
+    this.realtime.users(
+      [call.callerId, call.vendor.userId],
+      "call:accepted",
+      payload,
+    );
+    return payload;
   }
   async reject(id: string, userId: string) {
     const call = await this.ownedVendorCall(id, userId);
     if (call.status !== "REQUESTED")
       throw new ConflictException("Call can no longer be rejected");
     const result = await this.release(id, "REJECTED");
-    this.realtime.user(call.callerId, "call:rejected", result);
+    this.realtime.users([call.callerId, call.vendor.userId], "call:rejected", {
+      ...result,
+      id,
+      callerId: call.callerId,
+      vendorUserId: call.vendor.userId,
+      callType: call.callType,
+    });
     return result;
   }
   async cancel(id: string, userId: string) {
@@ -210,27 +229,47 @@ export class CallsService {
     if (!["REQUESTED", "ACCEPTED", "CONNECTING"].includes(call.status))
       throw new ConflictException("Call can no longer be cancelled");
     const result = await this.release(id, "CANCELLED");
-    this.realtime.user(call.vendor.userId, "call:cancelled", result);
+    this.realtime.users([call.callerId, call.vendor.userId], "call:cancelled", {
+      ...result,
+      callerId: call.callerId,
+      vendorUserId: call.vendor.userId,
+    });
     return result;
   }
   async joinToken(id: string, userId: string) {
     const call = await this.assertParticipant(id, userId);
     if (!["ACCEPTED", "CONNECTING", "ACTIVE"].includes(call.status))
       throw new ConflictException("Call cannot be joined");
-    await this.db.callParticipantEvent.create({data:{callId:id,userId,eventType:'JOIN_TOKEN_ISSUED'}});
+    if (call.status === "ACCEPTED") {
+      await this.db.callSession.update({
+        where: { id },
+        data: { status: "CONNECTING" },
+      });
+      this.realtime.users(
+        [call.callerId, call.vendor.userId],
+        "call:connecting",
+        { callId: id, userId },
+      );
+    }
+    await this.db.callParticipantEvent.create({
+      data: { callId: id, userId, eventType: "JOIN_TOKEN_ISSUED" },
+    });
     const isCaller = userId === call.callerId;
     const otherUserId = isCaller ? call.vendor.userId : call.callerId;
     const otherProfile = await this.db.profile.findUnique({
       where: { userId: otherUserId },
-      select: { displayName: true },
+      select: { displayName: true, avatarUrl: true },
     });
     return {
       ...this.rtc.issue(id, userId),
+      callId: id,
       callType: call.callType,
       otherUserId,
       otherDisplayName: otherProfile?.displayName ?? null,
+      otherAvatarUrl: otherProfile?.avatarUrl ?? null,
       giftReceiverId: call.vendor.userId,
       canSendGifts: isCaller,
+      status: call.status === "ACCEPTED" ? "CONNECTING" : call.status,
     };
   }
   async connected(id: string, userId: string) {
@@ -464,6 +503,49 @@ export class CallsService {
     if (!call || ![call.callerId, call.vendor.userId].includes(userId))
       throw new ForbiddenException();
     return call;
+  }
+  /** Full call payload for realtime + client join screens (both sides). */
+  private async callEventPayload(callId: string) {
+    const call = await this.db.callSession.findUniqueOrThrow({
+      where: { id: callId },
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            userId: true,
+            user: {
+              select: {
+                profile: {
+                  select: {
+                    displayName: true,
+                    username: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const caller = await this.db.user.findUnique({
+      where: { id: call.callerId },
+      select: {
+        id: true,
+        profile: {
+          select: { displayName: true, username: true, avatarUrl: true },
+        },
+      },
+    });
+    return {
+      ...call,
+      caller,
+      vendorUserId: call.vendor.userId,
+      peerNames: {
+        caller: caller?.profile?.displayName ?? "Caller",
+        vendor: call.vendor.user?.profile?.displayName ?? "Creator",
+      },
+    };
   }
   private release(
     id: string,

@@ -39,6 +39,11 @@ type GiftEvent = {
   pointPrice?: number;
 };
 
+/**
+ * Shared call room for both participants.
+ * Both join the same Agora channel (user accounts = user ids) so voice/video
+ * works Messenger-style as soon as the other person is in the room.
+ */
 export function ActiveCallScreen({
   route,
   navigation,
@@ -46,16 +51,18 @@ export function ActiveCallScreen({
   route: any;
   navigation: any;
 }) {
-  const { callId, title = 'Voice call' } = route.params;
+  const { callId, title = 'Call', callType: routeCallType } = route.params;
   const engine = useRef<IRtcEngine | undefined>(undefined);
   const startedAt = useRef<number | undefined>(undefined);
   const ending = useRef(false);
+  const remotePresent = useRef(false);
   const [status, setStatus] = useState('Connecting securely…');
   const [remaining, setRemaining] = useState(0);
   const [muted, setMuted] = useState(false);
   const [speaker, setSpeaker] = useState(true);
+  const [cameraOff, setCameraOff] = useState(false);
   const [provider, setProvider] = useState('');
-  const [video, setVideo] = useState(false);
+  const [video, setVideo] = useState(routeCallType === 'VIDEO');
   const [remoteUid, setRemoteUid] = useState<number>();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [giftReceiverId, setGiftReceiverId] = useState('');
@@ -80,6 +87,16 @@ export function ActiveCallScreen({
     }
   };
 
+  const markConnected = async () => {
+    if (startedAt.current || ending.current) return;
+    startedAt.current = Date.now();
+    try {
+      await api.post(`/calls/${callId}/connected`);
+    } catch {
+      /* first peer or race is fine */
+    }
+  };
+
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
     let mounted = true;
@@ -88,8 +105,15 @@ export function ActiveCallScreen({
     const giftHandler = (event: GiftEvent) => {
       setGiftEvent(event);
       setTimeout(() => {
-        if (mounted) setGiftEvent((current) => (current === event ? undefined : current));
+        if (mounted)
+          setGiftEvent((current) => (current === event ? undefined : current));
       }, 2500);
+    };
+
+    const endedHandler = (payload: any) => {
+      if (payload?.id === callId && !ending.current) {
+        void end('Call completed');
+      }
     };
 
     const connect = async () => {
@@ -130,10 +154,14 @@ export function ActiveCallScreen({
           }
         }
         setProvider(access.provider);
+
         if (access.provider === 'DEVELOPMENT') {
-          await api.post(`/calls/${callId}/connected`);
-          startedAt.current = Date.now();
-          setStatus(`Development ${isVideo ? 'video' : 'voice'} simulation`);
+          // Local sim without Agora credentials — still mark both sides active.
+          await markConnected();
+          if (mounted)
+            setStatus(
+              `Connected · development ${isVideo ? 'video' : 'voice'} simulation`,
+            );
         } else {
           const rtc = createAgoraRtcEngine();
           engine.current = rtc;
@@ -142,27 +170,35 @@ export function ActiveCallScreen({
             channelProfile: ChannelProfileType.ChannelProfileCommunication,
           });
           rtc.enableAudio();
+          rtc.setDefaultAudioRouteToSpeakerphone(true);
+          rtc.setEnableSpeakerphone(true);
           if (isVideo) {
             rtc.enableVideo();
+            rtc.enableLocalVideo(true);
             rtc.startPreview();
           }
           rtc.setClientRole(ClientRoleType.ClientRoleBroadcaster);
-          rtc.setEnableSpeakerphone(true);
+
           const handler: IRtcEngineEventHandler = {
             onJoinChannelSuccess: () => {
-              if (mounted) setStatus('Waiting for the other person…');
+              if (!mounted) return;
+              setStatus('In call · waiting for the other person…');
+              // Publish media immediately; billing starts when peer joins.
             },
             onUserJoined: async (_connection, uid) => {
+              remotePresent.current = true;
               setRemoteUid(uid);
-              if (!startedAt.current) {
-                startedAt.current = Date.now();
-                await api.post(`/calls/${callId}/connected`);
-              }
-              if (mounted) setStatus('Connected');
+              await markConnected();
+              if (mounted) setStatus('Connected · talking now');
             },
             onUserOffline: () => {
+              remotePresent.current = false;
               if (mounted) setStatus('The other person left');
               void end('Call completed');
+            },
+            onRemoteVideoStateChanged: (_connection, uid, state) => {
+              // 2 = decoding/playing remote video
+              if (state === 2 || state === 1) setRemoteUid(uid);
             },
             onConnectionStateChanged: (_connection, state) => {
               if (!mounted) return;
@@ -175,6 +211,8 @@ export function ActiveCallScreen({
             },
           };
           rtc.registerEventHandler(handler);
+
+          // Both users must publish mic (+ camera for video) so they can talk.
           const result = rtc.joinChannelWithUserAccount(
             access.token,
             access.channelName,
@@ -189,6 +227,7 @@ export function ActiveCallScreen({
           );
           if (result < 0) throw new Error(`Agora join failed (${result})`);
         }
+
         timer = setInterval(async () => {
           if (!startedAt.current || ending.current) return;
           const elapsed = Math.floor((Date.now() - startedAt.current) / 1000);
@@ -213,12 +252,14 @@ export function ActiveCallScreen({
     void realtime().then((value) => {
       socket = value;
       socket?.on('gift:animation', giftHandler);
+      socket?.on('call:ended', endedHandler);
     });
 
     return () => {
       mounted = false;
       if (timer) clearInterval(timer);
       socket?.off('gift:animation', giftHandler);
+      socket?.off('call:ended', endedHandler);
       engine.current?.leaveChannel();
       engine.current?.release();
       engine.current = undefined;
@@ -240,6 +281,15 @@ export function ActiveCallScreen({
     engine.current?.setEnableSpeakerphone(next);
     setSpeaker(next);
     void event(next ? 'SPEAKER_ENABLED' : 'SPEAKER_DISABLED');
+  };
+
+  const toggleCamera = () => {
+    if (!video) return;
+    const next = !cameraOff;
+    engine.current?.muteLocalVideoStream(next);
+    engine.current?.enableLocalVideo(!next);
+    setCameraOff(next);
+    void event(next ? 'CAMERA_DISABLED' : 'CAMERA_ENABLED');
   };
 
   const sendGift = async (gift: GiftItem) => {
@@ -276,13 +326,20 @@ export function ActiveCallScreen({
             ) : (
               <View style={styles.videoWaiting}>
                 <Avatar name={displayName} size={90} />
+                <Text style={styles.waitingLabel}>Waiting for video…</Text>
               </View>
             )}
-            <RtcSurfaceView
-              style={styles.localVideo}
-              canvas={{ uid: 0 }}
-              zOrderMediaOverlay
-            />
+            {!cameraOff ? (
+              <RtcSurfaceView
+                style={styles.localVideo}
+                canvas={{ uid: 0 }}
+                zOrderMediaOverlay
+              />
+            ) : (
+              <View style={styles.localVideoOff}>
+                <Text style={styles.localVideoOffText}>Cam off</Text>
+              </View>
+            )}
           </View>
         ) : null}
 
@@ -294,9 +351,7 @@ export function ActiveCallScreen({
             <Text style={styles.giftEventSender}>
               {giftEvent.senderName || 'Someone'}
             </Text>
-            <Text style={styles.giftEventText}>
-              sent {giftEvent.gift}
-            </Text>
+            <Text style={styles.giftEventText}>sent {giftEvent.gift}</Text>
           </View>
         ) : null}
 
@@ -304,7 +359,7 @@ export function ActiveCallScreen({
           <Pill
             label={
               provider === 'AGORA'
-                ? `Encrypted Agora ${video ? 'video' : 'audio'}`
+                ? `Live ${video ? 'video' : 'voice'} · both sides`
                 : 'Development simulation'
             }
             tone={provider === 'AGORA' ? 'success' : 'gold'}
@@ -379,6 +434,17 @@ export function ActiveCallScreen({
             <Text style={styles.controlIcon}>◖</Text>
             <Text style={styles.controlLabel}>Speaker</Text>
           </Pressable>
+          {video ? (
+            <Pressable
+              style={[styles.control, cameraOff && styles.activeControl]}
+              onPress={toggleCamera}
+            >
+              <Text style={styles.controlIcon}>{cameraOff ? '▦' : '▣'}</Text>
+              <Text style={styles.controlLabel}>
+                {cameraOff ? 'Cam on' : 'Cam off'}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             style={[styles.control, styles.end]}
             onPress={() => void end()}
@@ -408,11 +474,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
+  localVideoOff: {
+    position: 'absolute',
+    right: 10,
+    top: 60,
+    width: 110,
+    height: 160,
+    borderRadius: 16,
+    backgroundColor: '#2A2438',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  localVideoOffText: { color: '#FFF', fontWeight: '700', fontSize: 12 },
   videoWaiting: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
   },
+  waitingLabel: { color: colors.muted, fontSize: 13 },
   giftEvent: {
     position: 'absolute',
     top: '35%',
@@ -432,7 +512,7 @@ const styles = StyleSheet.create({
   },
   giftEventText: { color: '#FFF', fontWeight: '900', marginTop: 2 },
   top: { alignItems: 'center', zIndex: 3 },
-  status: { color: colors.muted, marginTop: 10 },
+  status: { color: colors.muted, marginTop: 10, textAlign: 'center', paddingHorizontal: 24 },
   person: {
     flex: 1,
     alignItems: 'center',
@@ -473,14 +553,16 @@ const styles = StyleSheet.create({
   giftCost: { fontSize: 8, color: colors.primary, fontWeight: '900' },
   controls: {
     flexDirection: 'row',
-    gap: 18,
+    gap: 14,
     paddingBottom: 24,
     zIndex: 3,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   control: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,

@@ -86,6 +86,7 @@ export function CallsScreen() {
         navigation.navigate('ActiveCall', {
           callId: item.id,
           title: callTitle(item),
+          callType: item.callType,
         });
       else void load();
     } catch (error: any) {
@@ -203,6 +204,7 @@ export function CallsScreen() {
                     navigation.navigate('ActiveCall', {
                       callId: item.id,
                       title: name,
+                      callType: item.callType,
                     })
                   }
                 />

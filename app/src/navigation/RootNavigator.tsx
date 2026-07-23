@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActiveCallScreen } from "../screens/ActiveCallScreen";
 import { IncomingCallScreen } from "../screens/IncomingCallScreen";
+import { OutgoingCallScreen } from "../screens/OutgoingCallScreen";
 import { AppealsScreen } from "../screens/AppealsScreen";
 import { AddMoneyScreen } from "../screens/AddMoneyScreen";
 import { AdminScreen } from "../screens/AdminScreen";
@@ -164,6 +165,15 @@ export function RootNavigator() {
       <Stack.Screen
         name="IncomingCall"
         component={IncomingCallScreen}
+        options={{
+          headerShown: false,
+          gestureEnabled: false,
+          presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="OutgoingCall"
+        component={OutgoingCallScreen}
         options={{
           headerShown: false,
           gestureEnabled: false,
