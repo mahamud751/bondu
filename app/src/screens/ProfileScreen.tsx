@@ -130,6 +130,30 @@ export function ProfileScreen() {
           />
         ) : null}
         <MenuItem
+          icon="●"
+          title="Go live"
+          body="Video live, audio rooms, multi-guest & PK"
+          onPress={() => navigation.navigate("GoLive")}
+        />
+        <MenuItem
+          icon="★"
+          title="Task Center"
+          body="Daily quests, levels and free points"
+          onPress={() => navigation.navigate("TaskCenter")}
+        />
+        <MenuItem
+          icon="▣"
+          title="Leaderboards"
+          body="Wealth, charm, host and weekly gifts"
+          onPress={() => navigation.navigate("Leaderboard")}
+        />
+        <MenuItem
+          icon="◎"
+          title="Beauty presets"
+          body="Makeup memory for live streams"
+          onPress={() => navigation.navigate("Beauty")}
+        />
+        <MenuItem
           icon="♡"
           title="Notifications"
           body="Calls, messages and account updates"

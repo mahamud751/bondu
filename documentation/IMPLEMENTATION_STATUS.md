@@ -1,8 +1,10 @@
 # SocialConnect implementation status
 
-Last audited: 2026-07-16
+Last audited: 2026-07-24
 
 This repository is a working MVP foundation, not a complete implementation of the full product specification. A feature is only marked implemented when both an API/data path and a usable mobile path exist.
+
+**Complete product roadmap (better-than-BIGO):** see [COMPLETE_APP_ROADMAP.md](./COMPLETE_APP_ROADMAP.md).
 
 | Area | Status | Current scope |
 | --- | --- | --- |
@@ -27,6 +29,9 @@ This repository is a working MVP foundation, not a complete implementation of th
 | Admin | MVP | A premium production-buildable Next.js console covers full daily operating metrics, analytics, staff access, users, creators, server-authoritative call logs, payments, refunds, reconciliation, withdrawals, safety reports, review reports, blocked-term controls, support, fraud, packages, gift cards, animated digital gifts, memberships, notification campaigns and validated platform settings. Call operations expose provider/channel metadata, connected and billed duration, payment source, revenue split, disconnect reason, ending actor and dispute state, with safe audited termination. Reasoned user balance adjustments are serializable, idempotent, ledger-backed, negative-balance safe and staff-audited. Fine-grained staff permissions provide role defaults, explicit grants/revocations, audited changes and self-lockout protection across finance, moderation, vendor review, exports, catalog, settings and audit functions. Finance/Admin users can download audited CSV reports; Admin users can produce privacy-conscious user-data exports. Deeper cohort charts remain. |
 | Support | MVP | Users can create categorized private tickets, attach owned evidence, receive staff replies and continue secure threads in the mobile app. Admin/Moderator APIs support queues, assignment, priority, internal notes, replies and resolution with notifications and audit logs. SLA automation and email mirroring remain. |
 | Infrastructure | Partial | PostgreSQL/Redis/API/dedicated-worker/Admin containers, Nginx TLS/WebSocket proxy, scheduled retained PostgreSQL backups, optional encrypted S3-compatible off-site replication with verification, Redis-distributed Socket.IO, durable BullMQ schedulers and separately scalable workers, health probes, Prometheus metrics, explicit CORS, and an optional Grafana/Loki/Promtail stack exist. Hosted deployment and restore-drill verification remain. |
+| Live streaming (Phases 1–6+) | Advanced | Solo + multi-guest seat grid, audio rooms, mic queue, moderated chat + **live translation (EN↔BN)**, likes, gift ranking + **SVGA/pack Gift FX player**, **Agora beauty**, **AR face-layer stickers**, **3D-style VTuber**, **path draw engine + Draw & Guess**, PK solo/best-of-3/5, scale playbook (`GLOBAL_SCALE.md`). |
+| Engagement (Phase 4) | MVP | Fan clubs (join cost, intimacy), wealth/charm/host levels, Task Center (daily/weekly quests + claim), gift XP. Super-fan entry effects and platform events remain. |
+| Live → private bridge (Phase 5) | Partial | One-tap private voice call request from live room to approved host vendor. Live→DM package upsell remains. |
 
 ## Launch blockers
 

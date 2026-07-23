@@ -9,9 +9,10 @@ const Toggle=({label,body,value,onChange}:{label:string;body:string;value:boolea
 const timePattern=/^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
 export function SettingsScreen(){
-  const[profile,setProfile]=useState<any>({}),[preferences,setPreferences]=useState<any>({}),[devices,setDevices]=useState<any[]>([]),[blocks,setBlocks]=useState<any[]>([]),[currentPassword,setCurrent]=useState(''),[newPassword,setNew]=useState(''),[deletePassword,setDelete]=useState(''),logout=useAuth(state=>state.logout);
-  const load=()=>Promise.all([api.get('/users/me'),api.get('/notifications/preferences'),api.get('/auth/devices'),api.get('/users/blocks')]).then(([u,p,d,b])=>{setProfile(u.data.profile??{});setPreferences({...p.data,quietStart:p.data.quietStart??'22:00',quietEnd:p.data.quietEnd??'07:00'});setDevices(d.data);setBlocks(b.data)});
+  const[profile,setProfile]=useState<any>({}),[preferences,setPreferences]=useState<any>({}),[devices,setDevices]=useState<any[]>([]),[blocks,setBlocks]=useState<any[]>([]),[locale,setLocale]=useState<'en'|'bn'>('en'),[currentPassword,setCurrent]=useState(''),[newPassword,setNew]=useState(''),[deletePassword,setDelete]=useState(''),logout=useAuth(state=>state.logout);
+  const load=()=>Promise.all([api.get('/users/me'),api.get('/notifications/preferences'),api.get('/auth/devices'),api.get('/users/blocks'),api.get('/locale/me').catch(()=>({data:{locale:'en'}}))]).then(([u,p,d,b,l])=>{setProfile(u.data.profile??{});setPreferences({...p.data,quietStart:p.data.quietStart??'22:00',quietEnd:p.data.quietEnd??'07:00'});setDevices(d.data);setBlocks(b.data);setLocale(l.data?.locale==='bn'?'bn':'en')});
   useEffect(()=>{void load()},[]);
+  const switchLocale=async(next:'en'|'bn')=>{const prev=locale;setLocale(next);try{await api.post('/locale/me',{locale:next})}catch{setLocale(prev);Alert.alert('Could not change language', 'Try again')}};
   const privacy=async(key:string,value:boolean)=>{setProfile((current:any)=>({...current,[key]:value}));try{await api.patch('/users/me/privacy',{[key]:value})}catch{setProfile((current:any)=>({...current,[key]:!value}))}};
   const preference=async(key:string,value:boolean)=>{setPreferences((current:any)=>({...current,[key]:value}));try{await api.patch('/notifications/preferences',{[key]:value})}catch{setPreferences((current:any)=>({...current,[key]:!value}))}};
   const saveQuietHours=async()=>{if(!timePattern.test(preferences.quietStart)||!timePattern.test(preferences.quietEnd))return Alert.alert('Use 24-hour time','Enter times such as 22:00 and 07:00.');try{await api.patch('/notifications/preferences',{quietStart:preferences.quietStart,quietEnd:preferences.quietEnd});Alert.alert('Quiet hours saved','Nonessential push and email updates will pause during this window.')}catch(error:any){Alert.alert('Could not save quiet hours',apiErrorMessage(error, 'Try again'))}};
@@ -19,6 +20,9 @@ export function SettingsScreen(){
   const revoke=async(deviceId:string)=>{await api.post('/auth/logout',{deviceId});await load()};
   const remove=()=>Alert.alert('Delete account','Your public profile will be anonymized. Financial records are retained as required.',[{text:'Cancel',style:'cancel'},{text:'Delete permanently',style:'destructive',onPress:async()=>{try{await api.delete('/users/me',{data:{password:deletePassword}});await logout()}catch(error:any){Alert.alert('Could not delete account',apiErrorMessage(error, 'Try again'))}}}]);
   return <Screen scroll><Eyebrow>You stay in control</Eyebrow><Title subtitle="Privacy, notifications, sessions and account security">Settings</Title>
+    <SectionTitle>Language / ভাষা</SectionTitle><Card style={styles.group}>
+      <Toggle label="Bangla (বাংলা)" body="Coach tips and preference for Bengali content" value={locale==='bn'} onChange={value=>void switchLocale(value?'bn':'en')}/>
+    </Card>
     <SectionTitle>Privacy</SectionTitle><Card style={styles.group}>
       <Toggle label="Show online status" body="Let people know when you are available" value={!profile.hideOnline} onChange={value=>privacy('hideOnline',!value)}/>
       <Toggle label="Show last seen" body="Share when you were last active" value={!profile.hideLastSeen} onChange={value=>privacy('hideLastSeen',!value)}/>

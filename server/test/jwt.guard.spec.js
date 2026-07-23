@@ -11,7 +11,12 @@ const context = (request = { headers: { authorization: 'Bearer token' } }) => ({
 });
 
 describe('JwtGuard account state', () => {
-  const jwt = { verifyAsync: jest.fn().mockResolvedValue({ sub: 'user', role: 'USER' }) };
+  const jwt = {
+    verifyAsync: jest.fn().mockResolvedValue({ sub: 'user', role: 'USER' }),
+  };
+  const config = {
+    getOrThrow: jest.fn().mockReturnValue('test-access-secret'),
+  };
 
   it('uses the current database role instead of a stale token role', async () => {
     const request = { headers: { authorization: 'Bearer token' } };
@@ -25,7 +30,7 @@ describe('JwtGuard account state', () => {
       },
     };
     const reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
-    const guard = new JwtGuard(jwt, db, reflector);
+    const guard = new JwtGuard(jwt, db, reflector, config);
 
     await expect(guard.canActivate(context(request))).resolves.toBe(true);
     expect(request.user.role).toBe('VENDOR');
@@ -42,9 +47,11 @@ describe('JwtGuard account state', () => {
       },
     };
     const reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
-    const guard = new JwtGuard(jwt, db, reflector);
+    const guard = new JwtGuard(jwt, db, reflector, config);
 
-    await expect(guard.canActivate(context())).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(guard.canActivate(context())).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('allows a suspended account only on explicitly marked routes', async () => {
@@ -58,7 +65,7 @@ describe('JwtGuard account state', () => {
       },
     };
     const reflector = { getAllAndOverride: jest.fn().mockReturnValue(true) };
-    const guard = new JwtGuard(jwt, db, reflector);
+    const guard = new JwtGuard(jwt, db, reflector, config);
 
     await expect(guard.canActivate(context())).resolves.toBe(true);
   });
@@ -66,8 +73,10 @@ describe('JwtGuard account state', () => {
   it('rejects a token whose account was deleted', async () => {
     const db = { user: { findUnique: jest.fn().mockResolvedValue(null) } };
     const reflector = { getAllAndOverride: jest.fn() };
-    const guard = new JwtGuard(jwt, db, reflector);
+    const guard = new JwtGuard(jwt, db, reflector, config);
 
-    await expect(guard.canActivate(context())).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(guard.canActivate(context())).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 });

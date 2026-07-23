@@ -21,9 +21,15 @@ async function seedCatalog() {
   ]) await db.membershipPlan.upsert({ where: { id: plan.id }, create: plan, update: plan });
 
   const gifts = [
-    ['rose', 'Rose', '🌹', 20, 60], ['coffee', 'Coffee', '☕', 35, 60], ['heart', 'Heart', '💜', 50, 60], ['trophy', 'Trophy', '🏆', 80, 65], ['crown', 'Crown', '👑', 100, 65], ['diamond', 'Diamond', '💎', 250, 70], ['celebration', 'Celebration', '🎉', 150, 65],
+    ['rose', 'Rose', '🌹', 20, 60, null],
+    ['coffee', 'Coffee', '☕', 35, 60, null],
+    ['heart', 'Heart', '💜', 50, 60, null],
+    ['trophy', 'Trophy', '🏆', 80, 65, null],
+    ['crown', 'Crown', '👑', 100, 65, 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif'],
+    ['diamond', 'Diamond', '💎', 250, 70, 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif'],
+    ['celebration', 'Celebration', '🎉', 500, 70, 'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif'],
   ] as const;
-  for (const [index,[id, name, iconUrl, pointPrice, vendorPercent]] of gifts.entries()) await db.digitalGift.upsert({ where: { id: `seed-${id}` }, create: { id: `seed-${id}`, name, iconUrl, pointPrice, vendorPercent,category:pointPrice>=150?'PREMIUM':'STANDARD',displayOrder:index,enabledInCalls:true,enabledInChats:true,enabledInLive:true }, update: { name, iconUrl, pointPrice, vendorPercent,category:pointPrice>=150?'PREMIUM':'STANDARD',displayOrder:index,enabledInCalls:true,enabledInChats:true,enabledInLive:true,active: true } });
+  for (const [index,[id, name, iconUrl, pointPrice, vendorPercent, animationUrl]] of gifts.entries()) await db.digitalGift.upsert({ where: { id: `seed-${id}` }, create: { id: `seed-${id}`, name, iconUrl, animationUrl, pointPrice, vendorPercent,category:pointPrice>=150?'PREMIUM':'STANDARD',displayOrder:index,enabledInCalls:true,enabledInChats:true,enabledInLive:true }, update: { name, iconUrl, animationUrl, pointPrice, vendorPercent,category:pointPrice>=150?'PREMIUM':'STANDARD',displayOrder:index,enabledInCalls:true,enabledInChats:true,enabledInLive:true,active: true } });
 
   const cards = [
     { id: 'seed-voice-card', name: 'Five-Minute Voice Card', type: PackageType.VOICE, price: 100, voiceSeconds: 300, messageCount: 0, validityDays: 7, transferable: true, vendorSpecific: false },

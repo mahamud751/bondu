@@ -247,7 +247,20 @@ model User {
   subscriptions      UserSubscription[]
   liveSessions       LiveSession[]
   liveViewerEvents   LiveViewerEvent[]
+  liveChatMessages   LiveChatMessage[]
+  liveLikes          LiveLike[]
+  liveBans           LiveBan[]
+  liveSeats          LiveSeat[]
+  liveMicRequests    LiveMicRequest[]
+  fanClubMemberships FanClubMember[]
+  fanClubsOwned      FanClub[]        @relation("FanClubOwner")
   dailyRewardClaims  DailyRewardClaim[]
+  userLevels         UserLevel?
+  taskClaims         TaskClaim[]
+  superFanOf         SuperFan[]       @relation("SuperFanMember")
+  superFansOwned     SuperFan[]       @relation("SuperFanHost")
+  beautyPreset       BeautyPreset?
+  localePreference   String           @default("en")
 }
 
 model AuthIdentity {
@@ -1263,23 +1276,158 @@ enum LiveStatus {
   ENDED
 }
 
+enum LiveChatKind {
+  USER
+  SYSTEM
+  GIFT
+}
+
+enum LiveMode {
+  VIDEO
+  AUDIO
+}
+
+enum LiveSeatRole {
+  HOST
+  GUEST
+}
+
+enum LiveMicRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum LivePkStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
 model LiveSession {
   id                String       @id @default(uuid())
   hostId            String
   title             String?
+  category          String       @default("CHAT")
+  coverUrl          String?
+  tags              String[]     @default([])
+  mode              LiveMode     @default(VIDEO)
+  maxGuests         Int          @default(8)
+  seatsOpen         Boolean      @default(true)
+  queueEnabled      Boolean      @default(true)
   status            LiveStatus   @default(LIVE)
   viewerCount       Int          @default(0)
   peakViewers       Int          @default(0)
+  likeCount         Int          @default(0)
+  totalGiftPoints   Int          @default(0)
+  chatMuted         Boolean      @default(false)
   provider          String       @default("AGORA")
   providerSessionId String?
+  activePkId        String?
+  virtualMode       Boolean      @default(false)
+  virtualAvatar     String       @default("fox")
+  activeGameId      String?
   startedAt         DateTime     @default(now())
   endedAt           DateTime?
   createdAt         DateTime     @default(now())
   host              User         @relation(fields: [hostId], references: [id])
   viewerEvents      LiveViewerEvent[]
+  messages          LiveChatMessage[]
+  likes             LiveLike[]
+  bans              LiveBan[]
+  seats             LiveSeat[]
+  micRequests       LiveMicRequest[]
+  games             LiveGame[]
+  pkAsChallenger    LivePk[]     @relation("PkChallenger")
+  pkAsOpponent      LivePk[]     @relation("PkOpponent")
 
   @@index([status, viewerCount])
   @@index([hostId, status])
+  @@index([status, category, viewerCount])
+  @@index([status, mode])
+}
+
+model LiveGame {
+  id          String      @id @default(uuid())
+  liveId      String
+  type        String      @default("DRAW_GUESS")
+  status      String      @default("LOBBY")
+  hostId      String
+  drawerId    String?
+  word        String?
+  wordHint    String?
+  round       Int         @default(1)
+  maxRounds   Int         @default(3)
+  scores      Json        @default("{}")
+  strokes     Json        @default("[]")
+  endedAt     DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  live        LiveSession @relation(fields: [liveId], references: [id], onDelete: Cascade)
+
+  @@index([liveId, status])
+}
+
+model LiveSeat {
+  id         String       @id @default(uuid())
+  liveId     String
+  userId     String
+  seatIndex  Int
+  role       LiveSeatRole @default(GUEST)
+  muted      Boolean      @default(false)
+  cameraOff  Boolean      @default(false)
+  joinedAt   DateTime     @default(now())
+  leftAt     DateTime?
+  live       LiveSession  @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id])
+
+  @@unique([liveId, seatIndex])
+  @@index([liveId, leftAt])
+  @@index([userId, leftAt])
+}
+
+model LiveMicRequest {
+  id        String               @id @default(uuid())
+  liveId    String
+  userId    String
+  status    LiveMicRequestStatus @default(PENDING)
+  note      String?
+  createdAt DateTime             @default(now())
+  decidedAt DateTime?
+  live      LiveSession          @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id])
+
+  @@index([liveId, status, createdAt])
+  @@index([userId, status])
+}
+
+model LivePk {
+  id              String       @id @default(uuid())
+  challengerLiveId String
+  opponentLiveId  String
+  status          LivePkStatus @default(PENDING)
+  mode            String       @default("SOLO")
+  durationSeconds Int          @default(180)
+  maxRounds       Int          @default(1)
+  currentRound    Int          @default(1)
+  challengerScore Int          @default(0)
+  opponentScore   Int          @default(0)
+  challengerWins  Int          @default(0)
+  opponentWins    Int          @default(0)
+  winnerLiveId    String?
+  startedAt       DateTime?
+  endsAt          DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime     @default(now())
+  challengerLive  LiveSession  @relation("PkChallenger", fields: [challengerLiveId], references: [id], onDelete: Cascade)
+  opponentLive    LiveSession  @relation("PkOpponent", fields: [opponentLiveId], references: [id], onDelete: Cascade)
+
+  @@index([status, endsAt])
+  @@index([challengerLiveId, status])
+  @@index([opponentLiveId, status])
 }
 
 model LiveViewerEvent {
@@ -1295,6 +1443,46 @@ model LiveViewerEvent {
   @@index([userId, leftAt])
 }
 
+model LiveChatMessage {
+  id        String       @id @default(uuid())
+  liveId    String
+  userId    String
+  body      String
+  kind      LiveChatKind @default(USER)
+  createdAt DateTime     @default(now())
+  live      LiveSession  @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@index([liveId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model LiveLike {
+  id        String      @id @default(uuid())
+  liveId    String
+  userId    String
+  createdAt DateTime    @default(now())
+  live      LiveSession @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@unique([liveId, userId])
+  @@index([liveId, createdAt])
+}
+
+model LiveBan {
+  id        String      @id @default(uuid())
+  liveId    String
+  userId    String
+  reason    String?
+  createdBy String
+  createdAt DateTime    @default(now())
+  live      LiveSession @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@unique([liveId, userId])
+  @@index([liveId])
+}
+
 model DailyRewardClaim {
   id        String   @id @default(uuid())
   userId    String
@@ -1303,4 +1491,127 @@ model DailyRewardClaim {
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId, claimedAt])
+}
+
+model FanClub {
+  id          String          @id @default(uuid())
+  ownerId     String          @unique
+  name        String
+  badge       String          @default("✦")
+  joinCost    Int             @default(10)
+  memberCount Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  owner       User            @relation("FanClubOwner", fields: [ownerId], references: [id])
+  members     FanClubMember[]
+}
+
+model FanClubMember {
+  id             String   @id @default(uuid())
+  clubId         String
+  userId         String
+  intimacyPoints Int      @default(0)
+  level          Int      @default(1)
+  joinedAt       DateTime @default(now())
+  lastActiveAt   DateTime @default(now())
+  club           FanClub  @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@unique([clubId, userId])
+  @@index([userId])
+  @@index([clubId, intimacyPoints])
+}
+
+model UserLevel {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  wealthXp     Int      @default(0)
+  charmXp      Int      @default(0)
+  hostXp       Int      @default(0)
+  wealthLevel  Int      @default(1)
+  charmLevel   Int      @default(1)
+  hostLevel    Int      @default(1)
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model TaskDefinition {
+  id          String      @id @default(uuid())
+  code        String      @unique
+  title       String
+  description String
+  rewardPoints Int
+  period      String      @default("DAILY")
+  targetCount Int         @default(1)
+  active      Boolean     @default(true)
+  claims      TaskClaim[]
+}
+
+model TaskClaim {
+  id        String         @id @default(uuid())
+  taskId    String
+  userId    String
+  progress  Int            @default(0)
+  completed Boolean        @default(false)
+  claimed   Boolean        @default(false)
+  periodKey String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  task      TaskDefinition @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id])
+
+  @@unique([taskId, userId, periodKey])
+  @@index([userId, periodKey])
+}
+
+model SuperFan {
+  id        String   @id @default(uuid())
+  hostId    String
+  userId    String
+  tier      String   @default("SUPER")
+  entryFx   String   @default("GOLD_WAVE")
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  host      User     @relation("SuperFanHost", fields: [hostId], references: [id])
+  user      User     @relation("SuperFanMember", fields: [userId], references: [id])
+
+  @@unique([hostId, userId])
+  @@index([hostId])
+  @@index([userId])
+}
+
+model PlatformEvent {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  title       String
+  description String
+  startsAt    DateTime
+  endsAt      DateTime
+  giftBonusPct Int     @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([active, startsAt, endsAt])
+}
+
+model BeautyPreset {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  smooth    Int      @default(40)
+  whiten    Int      @default(20)
+  slim      Int      @default(10)
+  bigEye    Int      @default(0)
+  filterId  String   @default("natural")
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model LiveCoachTip {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  locale    String   @default("en")
+  message   String
+  minViewers Int     @default(0)
+  maxViewers Int?
+  active    Boolean  @default(true)
 }

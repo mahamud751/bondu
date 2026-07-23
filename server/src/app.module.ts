@@ -26,6 +26,7 @@ import { RestrictionsModule } from "./restrictions/restrictions.module";
 import { EarningsModule } from './earnings/earnings.module';
 import { ReferralsModule } from "./referrals/referrals.module";
 import { RewardsModule } from "./rewards/rewards.module";
+import { EngagementModule } from "./engagement/engagement.module";
 import { SubscriptionsModule } from "./subscriptions/subscriptions.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SocialModule } from "./social/social.module";
@@ -117,6 +118,7 @@ const validateConfig = (config: Record<string, unknown>) => {
     WalletModule,
     ReferralsModule,
     RewardsModule,
+    EngagementModule,
     PaymentsModule,
     VendorsModule,
     PackagesModule,

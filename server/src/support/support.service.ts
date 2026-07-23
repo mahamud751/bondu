@@ -15,7 +15,17 @@ export class SupportService {
     const ticket=await this.db.supportTicket.findUnique({where:{id}});if(!ticket||ticket.userId!==userId)throw new NotFoundException();if(['RESOLVED','CLOSED'].includes(ticket.status))throw new ForbiddenException('This ticket is closed');await this.validateEvidence(userId,dto.evidenceIds??[]);
     return this.db.$transaction(async tx=>{const message=await tx.supportMessage.create({data:{ticketId:id,senderId:userId,body:dto.body.trim(),evidenceIds:dto.evidenceIds??[]}});await tx.supportTicket.update({where:{id},data:{status:'OPEN',lastReplyAt:new Date()}});return message});
   }
-  queue(){return this.db.supportTicket.findMany({where:{status:{not:'CLOSED'}},include:{user:{select:{phone:true,profile:{select:{displayName:true,username:true}}}},assignedTo:{select:{profile:{select:{displayName:true}}}},messages:{where:{internal:false},orderBy:{createdAt:'desc'},take:1}},orderBy:[{priority:'desc'},{lastReplyAt:'asc'}],take:250})}
+  async queue(){
+    const rows=await this.db.supportTicket.findMany({where:{status:{not:'CLOSED'}},include:{user:{select:{phone:true,profile:{select:{displayName:true,username:true}}}},assignedTo:{select:{profile:{select:{displayName:true}}}},messages:{where:{internal:false},orderBy:{createdAt:'desc'},take:1}},orderBy:[{priority:'desc'},{lastReplyAt:'asc'}],take:250});
+    const now=Date.now();
+    // SLA: staff-owned open tickets waiting > 24h are breached
+    return rows.map(row=>{
+      const waitingMs=now-new Date(row.lastReplyAt??row.createdAt).getTime();
+      const slaBreached =
+        ['OPEN', 'IN_PROGRESS'].includes(row.status) && waitingMs > 24 * 3600 * 1000;
+      return {...row,slaBreached,waitingHours:Math.floor(waitingMs/3600000)};
+    });
+  }
   detail(id:string){return this.db.supportTicket.findUniqueOrThrow({where:{id},include:{user:{select:{phone:true,profile:true}},assignedTo:{select:{profile:true}},messages:{orderBy:{createdAt:'asc'},include:{sender:{select:{role:true,profile:{select:{displayName:true}}}}}}}})}
   async replyStaff(actor:{sub:string;role:string},id:string,dto:ReplyTicketDto){
     const ticket=await this.db.supportTicket.findUniqueOrThrow({where:{id}});

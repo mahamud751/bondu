@@ -127,6 +127,11 @@ function LiveTile({ item, onPress }: { item: any; onPress: () => void }) {
         <View style={styles.liveTag}>
           <Text style={styles.liveTagText}>LIVE</Text>
         </View>
+        {item.category ? (
+          <View style={styles.viewerTag}>
+            <Text style={styles.viewerText}>{String(item.category)}</Text>
+          </View>
+        ) : null}
         <View style={styles.viewerTag}>
           <Icon name="eye-outline" size={12} color="#FFF" />
           <Text style={styles.viewerText}>{formatViewers(item.viewerCount)}</Text>

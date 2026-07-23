@@ -18,6 +18,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../wallet/wallet.service";
 import { RestrictionsService } from "../restrictions/restrictions.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { LiveService } from "../live/live.service";
+import { EngagementService } from "../engagement/engagement.service";
 
 class SendGiftDto {
   @IsUUID() receiverId!: string;
@@ -35,6 +37,8 @@ export class GiftsController {
     private readonly wallets: WalletService,
     private readonly restrictions: RestrictionsService,
     private readonly realtime: RealtimeGateway,
+    private readonly live: LiveService,
+    private readonly engagement: EngagementService,
   ) {}
 
   @Get()
@@ -252,16 +256,46 @@ export class GiftsController {
     });
 
     if (!result.duplicate) {
+      const price =
+        typeof result.pointPrice === "number" ? result.pointPrice : 0;
+      const hasPack = Boolean(
+        result.transaction &&
+          (result as { giftIcon?: string }).giftIcon,
+      );
+      // Load full gift for animation pack metadata when available
+      const giftMeta = await this.db.digitalGift.findUnique({
+        where: { id },
+        select: { animationUrl: true, pointPrice: true, iconUrl: true, name: true },
+      });
+      const fxTier = giftMeta?.animationUrl
+        ? "SVGA"
+        : price >= 500
+          ? "LEGENDARY"
+          : price >= 100
+            ? "PREMIUM"
+            : "BASIC";
+      const fxPack =
+        fxTier === "LEGENDARY"
+          ? ["🚀", "💥", "🔥", "👑", "💎", "⚡", "🌈", "🎆"]
+          : fxTier === "PREMIUM"
+            ? ["💎", "✨", "💫", "🌟", "💎"]
+            : fxTier === "SVGA"
+              ? ["🎬", "✨", "💎", "🌟", "💥"]
+              : ["✦", "✧", "★"];
       const animationPayload = {
-        gift: result.gift,
-        giftIcon: result.giftIcon,
+        gift: result.gift ?? giftMeta?.name,
+        giftIcon: result.giftIcon ?? giftMeta?.iconUrl,
         senderName: result.senderName,
-        pointPrice: result.pointPrice,
+        pointPrice: result.pointPrice ?? giftMeta?.pointPrice,
+        fxTier,
+        fxPack,
+        animationUrl: giftMeta?.animationUrl ?? null,
         senderId: u.sub,
         receiverId: d.receiverId,
         liveId: d.liveId ?? null,
         callId: d.callId ?? null,
         transaction: result.transaction,
+        hasPack,
       };
       this.realtime.users([u.sub, d.receiverId], "gift:received", {
         gift: result.gift,
@@ -269,6 +303,14 @@ export class GiftsController {
       });
       if (d.liveId) {
         this.realtime.room(`live:${d.liveId}`, "gift:animation", animationPayload);
+        if (typeof result.pointPrice === "number" && result.gift) {
+          void this.live.recordGiftPoints(
+            d.liveId,
+            result.pointPrice,
+            u.sub,
+            result.gift,
+          );
+        }
       } else if (d.callId) {
         this.realtime.users(
           [u.sub, d.receiverId],
@@ -281,6 +323,12 @@ export class GiftsController {
           "gift:animation",
           animationPayload,
         );
+      }
+      if (typeof result.pointPrice === "number") {
+        void this.engagement.addXp(u.sub, "wealth", result.pointPrice);
+        void this.engagement.addXp(d.receiverId, "charm", result.pointPrice);
+        void this.engagement.progressTask(u.sub, "SEND_GIFT");
+        void this.engagement.addIntimacy(d.receiverId, u.sub, result.pointPrice);
       }
     }
     return result;

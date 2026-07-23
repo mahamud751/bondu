@@ -40,6 +40,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../wallet/wallet.service";
 import { PayoutCryptoService } from "../security/payout-crypto.service";
 import { CallsService } from "../calls/calls.service";
+import { LiveService } from "../live/live.service";
 class SettingDto {
   @IsObject() value!: Record<string, unknown>;
   @IsOptional() @IsString() description?: string;
@@ -121,7 +122,41 @@ export class AdminController {
     private readonly wallets: WalletService,
     private readonly crypto: PayoutCryptoService,
     private readonly callsService: CallsService,
+    private readonly liveService: LiveService,
   ) {}
+
+  @Get("live")
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @RequirePermissions(StaffPermissionKey.MODERATE_CONTENT)
+  liveList() {
+    return this.db.liveSession.findMany({
+      where: { status: "LIVE" },
+      orderBy: { viewerCount: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        mode: true,
+        viewerCount: true,
+        totalGiftPoints: true,
+        startedAt: true,
+        host: { select: { id: true, profile: { select: { displayName: true } } } },
+      },
+    });
+  }
+
+  @Post("live/:id/force-end")
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @RequirePermissions(StaffPermissionKey.MODERATE_CONTENT)
+  forceEndLive(
+    @Param("id") id: string,
+    @CurrentUser() actor: { sub: string },
+    @Body() body: { reason?: string },
+  ) {
+    return this.liveService.adminForceEnd(id, actor.sub, body?.reason);
+  }
+
   @Get("dashboard")
   @Roles(Role.ADMIN, Role.MODERATOR, Role.FINANCE)
   @RequirePermissions(StaffPermissionKey.VIEW_DASHBOARD)

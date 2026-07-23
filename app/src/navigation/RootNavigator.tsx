@@ -31,6 +31,9 @@ import { SecurityActivityScreen } from "../screens/SecurityActivityScreen";
 import { SendGiftScreen } from "../screens/SendGiftScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SupportScreen } from "../screens/SupportScreen";
+import { TaskCenterScreen } from "../screens/TaskCenterScreen";
+import { LeaderboardScreen } from "../screens/LeaderboardScreen";
+import { BeautyScreen } from "../screens/BeautyScreen";
 import { VendorDashboardScreen } from "../screens/VendorDashboardScreen";
 import { VendorScreen } from "../screens/VendorScreen";
 import { WalletScreen } from "../screens/WalletScreen";
@@ -197,6 +200,21 @@ export function RootNavigator() {
         name="Referrals"
         component={ReferralsScreen}
         options={{ title: "Invite friends" }}
+      />
+      <Stack.Screen
+        name="TaskCenter"
+        component={TaskCenterScreen}
+        options={{ title: "Task Center" }}
+      />
+      <Stack.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{ title: "Leaderboards" }}
+      />
+      <Stack.Screen
+        name="Beauty"
+        component={BeautyScreen}
+        options={{ title: "Beauty presets" }}
       />
       <Stack.Screen
         name="GiftCards"

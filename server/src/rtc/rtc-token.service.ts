@@ -10,8 +10,19 @@ export class RtcTokenService {
   issue(callId: string, userId: string, ttlSeconds = 600): RtcAccess {
     return this.build(`call_${callId}`, userId, RtcRole.PUBLISHER, ttlSeconds);
   }
-  issueLive(liveId: string, userId: string, role: 'HOST' | 'VIEWER', ttlSeconds = 14400): RtcAccess {
-    return this.build(`live_${liveId}`, userId, role === 'HOST' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER, ttlSeconds);
+  issueLive(
+    liveId: string,
+    userId: string,
+    role: 'HOST' | 'GUEST' | 'VIEWER',
+    ttlSeconds = 14400,
+  ): RtcAccess {
+    const publisher = role === 'HOST' || role === 'GUEST';
+    return this.build(
+      `live_${liveId}`,
+      userId,
+      publisher ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER,
+      ttlSeconds,
+    );
   }
   private build(channelName: string, userId: string, role: number, ttlSeconds: number): RtcAccess {
     const expiresAtSeconds = Math.floor(Date.now() / 1000) + ttlSeconds;

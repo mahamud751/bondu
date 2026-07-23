@@ -59,8 +59,16 @@ export class WithdrawalsController {
     if(value.requiredIdentityVerification===true&&account.vendor?.identityStatus!=='VERIFIED')throw new BadRequestException('Identity verification is required for withdrawals');
     if(requiredCalls>0){const completed=await this.db.callSession.count({where:{vendorId:account.vendor?.id??'',status:'COMPLETED'}});if(completed<requiredCalls)throw new BadRequestException(`${requiredCalls} completed calls are required before withdrawal`)}
     const risk = await this.fraud.assessWithdrawal(user.sub, dto.amount);
+    // Auto-complete low-risk small withdrawals (no SSL/Twilio dependency).
+    // Manual review still required when fraud signals fire or amount is high.
+    const autoCompleteMax = number("autoCompleteMax", 2000);
+    const canAuto =
+      risk.action !== "MANUAL_REVIEW" &&
+      dto.amount <= autoCompleteMax &&
+      value.autoCompleteEnabled !== false;
+
     return this.wallets.transaction(async (tx) => {
-      const withdrawal = await tx.withdrawal.create({
+      let withdrawal = await tx.withdrawal.create({
         data: {
           userId: user.sub,
           amount: dto.amount,
@@ -82,11 +90,55 @@ export class WithdrawalsController {
         dto.amount,
         withdrawal.id,
       );
+
+      if (canAuto) {
+        if (fee > 0) {
+          await this.wallets.platformCommission(
+            tx,
+            fee,
+            "WITHDRAWAL",
+            withdrawal.id,
+            "Withdrawal processing fee",
+          );
+        }
+        await this.wallets.completeWithdrawal(
+          tx,
+          user.sub,
+          dto.amount,
+          withdrawal.id,
+          fee,
+        );
+        withdrawal = await tx.withdrawal.update({
+          where: { id: withdrawal.id },
+          data: { status: "COMPLETED" },
+        });
+        await tx.notification.create({
+          data: {
+            userId: user.sub,
+            type: "WITHDRAWAL_APPROVED",
+            title: "Withdrawal completed",
+            body: `Your withdrawal of ${dto.amount - fee} points was auto-completed.`,
+            data: { withdrawalId: withdrawal.id, auto: true },
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId: user.sub,
+            actorRole: "SYSTEM",
+            action: "WITHDRAWAL_AUTO_COMPLETED",
+            entityType: "WITHDRAWAL",
+            entityId: withdrawal.id,
+            newValue: { amount: dto.amount, fee, autoCompleteMax },
+          },
+        });
+      }
+
       const { accountDetailsEncrypted: _secret, ...safe } = withdrawal;
       return {
         ...safe,
-        netAmount:withdrawal.amount-withdrawal.fee,
+        netAmount: withdrawal.amount - withdrawal.fee,
         accountNumber: this.crypto.mask(withdrawal.accountLast4),
+        autoCompleted: canAuto,
       };
     });
   }
