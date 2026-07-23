@@ -42,6 +42,7 @@ export class LiveService {
   async join(id: string, userId: string) {
     const session = await this.db.liveSession.findUnique({ where: { id } });
     if (!session || session.status !== 'LIVE') throw new NotFoundException('This stream has ended');
+    if (session.hostId === userId) throw new ConflictException('Hosts cannot join their own stream as viewers');
     let viewerCount = session.viewerCount;
     const open = await this.db.liveViewerEvent.findFirst({ where: { liveId: id, userId, leftAt: null } });
     if (!open) {
@@ -56,7 +57,14 @@ export class LiveService {
     }
     const access = this.rtc.issueLive(id, userId, 'VIEWER');
     const host = await this.db.user.findUnique({ where: { id: session.hostId }, select: { profile: true } });
-    return { id: session.id, title: session.title, viewerCount, host: publicProfile(host?.profile), ...access };
+    const hostProfile = publicProfile(host?.profile);
+    return {
+      id: session.id,
+      title: session.title,
+      viewerCount,
+      host: hostProfile ? { ...hostProfile, userId: session.hostId } : { userId: session.hostId },
+      ...access,
+    };
   }
 
   async leave(id: string, userId: string) {

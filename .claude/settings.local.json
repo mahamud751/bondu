@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Bash(adb devices *)",
+      "Bash(emulator -list-avds)",
+      "Bash(lsof *)",
+      "Bash(nohup npx react-native start)",
+      "Bash(disown)",
+      "Bash(npx react-native *)",
+      "Bash(rm -rf node_modules)",
+      "Bash(npm install *)",
+      "Bash(adb shell *)"
+    ]
+  }
+}

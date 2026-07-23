@@ -718,6 +718,7 @@ model DigitalGift {
   active        Boolean @default(true)
   enabledInCalls Boolean @default(true)
   enabledInChats Boolean @default(true)
+  enabledInLive  Boolean @default(true)
   displayOrder  Int     @default(0)
   transactions GiftTransaction[]
 }
@@ -729,6 +730,7 @@ model GiftTransaction {
   receiverId     String
   callId         String?
   conversationId String?
+  liveId         String?
   grossAmount    Int
   vendorAmount   Int
   platformAmount Int
@@ -741,6 +743,7 @@ model GiftTransaction {
   @@index([senderId,createdAt])
   @@index([callId,createdAt])
   @@index([conversationId,createdAt])
+  @@index([liveId,createdAt])
 }
 
 model Withdrawal {

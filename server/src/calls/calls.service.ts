@@ -218,7 +218,20 @@ export class CallsService {
     if (!["ACCEPTED", "CONNECTING", "ACTIVE"].includes(call.status))
       throw new ConflictException("Call cannot be joined");
     await this.db.callParticipantEvent.create({data:{callId:id,userId,eventType:'JOIN_TOKEN_ISSUED'}});
-    return { ...this.rtc.issue(id, userId), callType: call.callType,otherUserId:userId===call.callerId?call.vendor.userId:call.callerId,canSendGifts:userId===call.callerId };
+    const isCaller = userId === call.callerId;
+    const otherUserId = isCaller ? call.vendor.userId : call.callerId;
+    const otherProfile = await this.db.profile.findUnique({
+      where: { userId: otherUserId },
+      select: { displayName: true },
+    });
+    return {
+      ...this.rtc.issue(id, userId),
+      callType: call.callType,
+      otherUserId,
+      otherDisplayName: otherProfile?.displayName ?? null,
+      giftReceiverId: call.vendor.userId,
+      canSendGifts: isCaller,
+    };
   }
   async connected(id: string, userId: string) {
     const call = await this.assertParticipant(id, userId);
@@ -393,8 +406,8 @@ export class CallsService {
     if (!call) throw new NotFoundException("Provider call channel not found");
     return this.end(call.id, call.callerId, undefined, "PROVIDER", "PROVIDER_CHANNEL_ENDED");
   }
-  history(userId: string) {
-    return this.db.callSession.findMany({
+  async history(userId: string) {
+    const calls = await this.db.callSession.findMany({
       where: { OR: [{ callerId: userId }, { vendor: { userId } }] },
       include: {
         vendor: { include: { user: { select: { profile: true } } } },
@@ -403,6 +416,27 @@ export class CallsService {
       orderBy: { createdAt: "desc" },
       take: 100,
     });
+    const callerIds = [...new Set(calls.map((call) => call.callerId))];
+    const profiles = await this.db.profile.findMany({
+      where: { userId: { in: callerIds } },
+      select: {
+        userId: true,
+        displayName: true,
+        username: true,
+        avatarUrl: true,
+        online: true,
+      },
+    });
+    const byCaller = Object.fromEntries(
+      profiles.map((profile) => [profile.userId, profile]),
+    );
+    return calls.map((call) => ({
+      ...call,
+      caller: {
+        id: call.callerId,
+        profile: byCaller[call.callerId] ?? null,
+      },
+    }));
   }
   private maximumSeconds(call: {
     prepaidSeconds: number;

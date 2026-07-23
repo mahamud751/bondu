@@ -71,13 +71,21 @@ export function CallsScreen() {
     };
   }, [load]);
 
+  const callTitle = (item: any) => {
+    const peer =
+      item.vendor?.user?.profile?.displayName ??
+      item.caller?.profile?.displayName ??
+      (item.callType === 'VIDEO' ? 'Video call' : 'Voice call');
+    return peer;
+  };
+
   const act = async (item: any, action: 'accept' | 'reject' | 'cancel') => {
     try {
       await api.post(`/calls/${item.id}/${action}`);
       if (action === 'accept')
         navigation.navigate('ActiveCall', {
           callId: item.id,
-          title: 'Voice call',
+          title: callTitle(item),
         });
       else void load();
     } catch (error: any) {
@@ -124,9 +132,9 @@ export function CallsScreen() {
           const active = ['ACCEPTED', 'CONNECTING', 'ACTIVE'].includes(
             item.status,
           );
-          const name =
-            item.vendor?.user?.profile?.displayName ?? 'Voice conversation';
+          const name = callTitle(item);
           const completed = item.status === 'COMPLETED';
+          const kind = item.callType === 'VIDEO' ? 'Video' : 'Voice';
           return (
             <Card>
               <View style={styles.row}>
@@ -134,7 +142,7 @@ export function CallsScreen() {
                 <View style={styles.info}>
                   <Text style={styles.name}>{name}</Text>
                   <Text style={styles.meta}>
-                    {new Date(item.createdAt).toLocaleString()}
+                    {kind} · {new Date(item.createdAt).toLocaleString()}
                   </Text>
                 </View>
                 <Pill
@@ -188,7 +196,7 @@ export function CallsScreen() {
                   title={
                     item.status === 'ACTIVE'
                       ? 'Return to call'
-                      : 'Join voice call'
+                      : `Join ${item.callType === 'VIDEO' ? 'video' : 'voice'} call`
                   }
                   icon="◉"
                   onPress={() =>
